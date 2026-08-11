@@ -15,7 +15,7 @@
         "grep",
         "find",
         "ls",
-        "herdr_workflow",
+        "pi_herdr_orchestrator",
         "subagent",
         "subagent_wait"
       ]

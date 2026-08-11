@@ -65,7 +65,7 @@ function requireRole(role: "scout" | "builder" | "reviewer" | undefined) {
   return role;
 }
 
-export default function herdrWorkflow(pi: ExtensionAPI) {
+export default function piHerdrOrchestrator(pi: ExtensionAPI) {
   type PendingAdoption = {
     result: any;
     config: any;
@@ -192,9 +192,9 @@ export default function herdrWorkflow(pi: ExtensionAPI) {
     applyAdoptedEnvironment(storedState, runtime.config);
     runtime.ceiling = registerSubagentCapabilityCeiling({
       sessionId: activation.sessionId,
-      source: "herdr-workflow:orchestrator",
+      source: "pi-herdr-orchestrator:orchestrator",
       ceiling: {
-        allowedAgents: ["herdr-workflow.advisor", "herdr-workflow.reviewer", "herdr-workflow.scout"],
+        allowedAgents: ["pi-herdr-orchestrator.advisor", "pi-herdr-orchestrator.reviewer", "pi-herdr-orchestrator.scout"],
         allowedTools: ["read", "grep", "find", "ls"],
         denyExtensions: true,
       },
@@ -262,7 +262,7 @@ export default function herdrWorkflow(pi: ExtensionAPI) {
   });
 
   pi.on("session_start", async (_event, ctx) => {
-    if (pendingAdoption || activeRuntime || process.env.HERDR_WORKFLOW_ROLE) return;
+    if (pendingAdoption || activeRuntime || process.env.PI_HERDR_ORCHESTRATOR_ROLE) return;
     const paneId = process.env.HERDR_PANE_ID;
     const sessionId = ctx.sessionManager.getSessionId();
     if (!paneId || !sessionId) return;
@@ -301,8 +301,8 @@ export default function herdrWorkflow(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
-    name: "herdr_workflow",
-    label: "Herdr Workflow",
+    name: "pi_herdr_orchestrator",
+    label: "Pi Herdr Orchestrator",
     description: "Start and coordinate the portable Pi-first Herdr workflow. Mutating actions require explicit approved=true and are limited by role ownership.",
     parameters: Parameters,
     executionMode: "sequential",

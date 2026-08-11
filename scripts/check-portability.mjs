@@ -11,6 +11,7 @@ const forbidden = [
   { pattern: /[A-Za-z]:\\Users\\[A-Za-z0-9._-]+\\/u, label: "developer-specific Windows home" },
   { pattern: /(?:^|\/)auth\.json$/u, label: "credential file" },
 ];
+const retiredIdentifier = ["herdr", "workflow"].join("-");
 
 async function files(directory) {
   const output = [];
@@ -29,6 +30,7 @@ for (const file of await files(root)) {
   if (forbidden[3].pattern.test(relative)) failures.push(`${relative}: ${forbidden[3].label}`);
   if (/\.(png|jpe?g|gif|webp|ico)$/iu.test(relative)) continue;
   const content = await readFile(file, "utf8");
+  if (content.includes(retiredIdentifier)) failures.push(`${relative}: retired project identifier`);
   for (const rule of forbidden.slice(0, 3)) {
     if (rule.pattern.test(content)) failures.push(`${relative}: ${rule.label}`);
   }

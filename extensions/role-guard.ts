@@ -8,16 +8,16 @@ import { decideToolCall } from "../src/policy.mjs";
 import autoInspectors from "./auto-inspectors.ts";
 
 const READ_ONLY_SUBAGENTS = [
-  "herdr-workflow.advisor",
-  "herdr-workflow.reviewer",
-  "herdr-workflow.scout",
+  "pi-herdr-orchestrator.advisor",
+  "pi-herdr-orchestrator.reviewer",
+  "pi-herdr-orchestrator.scout",
 ];
 
 const READ_ONLY_SUBAGENT_TOOLS = ["read", "grep", "find", "ls"];
 
 export default function roleGuard(pi: ExtensionAPI) {
-  const role = process.env.HERDR_WORKFLOW_ROLE;
-  const root = process.env.HERDR_WORKFLOW_ROLE_ROOT;
+  const role = process.env.PI_HERDR_ORCHESTRATOR_ROLE;
+  const root = process.env.PI_HERDR_ORCHESTRATOR_ROLE_ROOT;
   if (!role || !root) return;
   // Keep this call here as a compatibility bridge: roles launched by a live
   // pre-upgrade Orchestrator already load role-guard, even though their cached
@@ -29,7 +29,7 @@ export default function roleGuard(pi: ExtensionAPI) {
     ceiling?.dispose();
     ceiling = registerSubagentCapabilityCeiling({
       sessionId: ctx.sessionManager.getSessionId(),
-      source: `herdr-workflow:${role}`,
+      source: `pi-herdr-orchestrator:${role}`,
       ceiling: {
         allowedAgents: READ_ONLY_SUBAGENTS,
         allowedTools: READ_ONLY_SUBAGENT_TOOLS,
@@ -44,7 +44,7 @@ export default function roleGuard(pi: ExtensionAPI) {
 
   let policyPromise: Promise<Record<string, unknown>> | undefined;
   const policy = () => {
-    policyPromise ??= loadConfig(process.env.HERDR_WORKFLOW_PACKAGE_ROOT || PACKAGE_ROOT)
+    policyPromise ??= loadConfig(process.env.PI_HERDR_ORCHESTRATOR_PACKAGE_ROOT || PACKAGE_ROOT)
       .then((config) => config.policy as Record<string, unknown>);
     return policyPromise;
   };
@@ -56,7 +56,7 @@ export default function roleGuard(pi: ExtensionAPI) {
       toolName: event.toolName,
       input: event.input as Record<string, unknown>,
       root,
-      readRoots: [process.env.HERDR_WORKFLOW_PACKAGE_ROOT || PACKAGE_ROOT],
+      readRoots: [process.env.PI_HERDR_ORCHESTRATOR_PACKAGE_ROOT || PACKAGE_ROOT],
       cwd: ctx.cwd,
       policy: await policy(),
     });

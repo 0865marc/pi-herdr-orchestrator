@@ -5,22 +5,22 @@ description: Route substantial coding work through a portable Pi-first Herdr wor
 
 # Pi Herdr Orchestrator
 
-Use the `herdr_workflow` tool as the deterministic control surface. Do not reproduce
+Use the `pi_herdr_orchestrator` tool as the deterministic control surface. Do not reproduce
 workspace, process, or Git orchestration with ad-hoc shell commands.
 
 ## Start safely
 
 1. Confirm the session runs inside Herdr. If `HERDR_ENV=1` is unavailable, explain
    that the workflow cannot start from this session and stop.
-2. Call `herdr_workflow` with `action: "doctor"`.
-3. Call `herdr_workflow` with `action: "preflight"` for the current repository.
+2. Call `pi_herdr_orchestrator` with `action: "doctor"`.
+3. Call `pi_herdr_orchestrator` with `action: "preflight"` for the current repository.
 4. Require a clean branch with a non-detached HEAD. Report dirty paths without
    stashing, committing, cleaning, or deleting them.
 5. Read `orchestratorLaunchMode` from doctor. Explain that `adopt-current` promotes
    this same conversation/workspace, while `isolated` creates a new
    `<project> · orchestrator` workspace. Neither mode authorizes implementation.
 6. Ask for explicit approval before creating or adopting the workflow.
-7. Only after approval, call `herdr_workflow` with:
+7. Only after approval, call `pi_herdr_orchestrator` with:
 
 ```json
 {

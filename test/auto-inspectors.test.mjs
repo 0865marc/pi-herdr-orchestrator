@@ -29,13 +29,13 @@ test("async subagent starts automatically open a non-focused Herdr inspector", a
     },
   };
   const previous = {
-    role: process.env.HERDR_WORKFLOW_ROLE,
+    role: process.env.PI_HERDR_ORCHESTRATOR_ROLE,
     pane: process.env.HERDR_PANE_ID,
-    max: process.env.HERDR_WORKFLOW_MAX_INSPECTOR_PANES,
+    max: process.env.PI_HERDR_ORCHESTRATOR_MAX_INSPECTOR_PANES,
   };
-  process.env.HERDR_WORKFLOW_ROLE = "scout";
+  process.env.PI_HERDR_ORCHESTRATOR_ROLE = "scout";
   process.env.HERDR_PANE_ID = "w-role:p1";
-  process.env.HERDR_WORKFLOW_MAX_INSPECTOR_PANES = "3";
+  process.env.PI_HERDR_ORCHESTRATOR_MAX_INSPECTOR_PANES = "3";
   try {
     autoInspectors(pi);
     eventHandlers.get("subagent:async-started")({ id: "run-12345678", asyncDir, cwd: "/repo" });
@@ -50,8 +50,8 @@ test("async subagent starts automatically open a non-focused Herdr inspector", a
     lifecycleHandlers.get("session_shutdown")();
     assert.equal(eventHandlers.has("subagent:async-started"), false);
   } finally {
-    if (previous.role === undefined) delete process.env.HERDR_WORKFLOW_ROLE; else process.env.HERDR_WORKFLOW_ROLE = previous.role;
+    if (previous.role === undefined) delete process.env.PI_HERDR_ORCHESTRATOR_ROLE; else process.env.PI_HERDR_ORCHESTRATOR_ROLE = previous.role;
     if (previous.pane === undefined) delete process.env.HERDR_PANE_ID; else process.env.HERDR_PANE_ID = previous.pane;
-    if (previous.max === undefined) delete process.env.HERDR_WORKFLOW_MAX_INSPECTOR_PANES; else process.env.HERDR_WORKFLOW_MAX_INSPECTOR_PANES = previous.max;
+    if (previous.max === undefined) delete process.env.PI_HERDR_ORCHESTRATOR_MAX_INSPECTOR_PANES; else process.env.PI_HERDR_ORCHESTRATOR_MAX_INSPECTOR_PANES = previous.max;
   }
 });

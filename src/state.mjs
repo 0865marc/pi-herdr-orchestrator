@@ -5,12 +5,12 @@ import { shortHash, slugify } from "./naming.mjs";
 
 export function stateRoot(env = process.env, home = homedir()) {
   const base = env.XDG_STATE_HOME ? path.resolve(env.XDG_STATE_HOME) : path.join(home, ".local", "state");
-  return path.join(base, "herdr-workflow", "runs");
+  return path.join(base, "pi-herdr-orchestrator", "runs");
 }
 
 export function dataRoot(env = process.env, home = homedir()) {
   const base = env.XDG_DATA_HOME ? path.resolve(env.XDG_DATA_HOME) : path.join(home, ".local", "share");
-  return path.join(base, "herdr-workflow");
+  return path.join(base, "pi-herdr-orchestrator");
 }
 
 export function worktreePathFor({ repository, project, task, runId, role }, options = {}) {
@@ -69,7 +69,7 @@ export async function listStates(options = {}) {
 }
 
 export function resolveRunId(explicit, env = process.env) {
-  const runId = explicit || env.HERDR_WORKFLOW_RUN_ID;
+  const runId = explicit || env.PI_HERDR_ORCHESTRATOR_RUN_ID;
   if (!runId) throw new Error("A workflow run id is required.");
   return runId;
 }

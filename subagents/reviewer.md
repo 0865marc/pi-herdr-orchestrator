@@ -1,6 +1,6 @@
 ---
 name: reviewer
-package: herdr-workflow
+package: pi-herdr-orchestrator
 description: Independent read-only review lane for a primary Herdr workflow role
 tools: read, grep, find, ls
 thinking: high

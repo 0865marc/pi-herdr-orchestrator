@@ -38,7 +38,7 @@ export function decideToolCall({ role, isChild = false, toolName, input = {}, ro
     if (outside) return `Role '${role}' cannot access paths outside its assigned root: ${resolvedRoot}`;
   }
 
-  if (toolName === "herdr_workflow" && input.action === "start") {
+  if (toolName === "pi_herdr_orchestrator" && input.action === "start") {
     return "This workflow is already running; an active role cannot start another Orchestrator.";
   }
 

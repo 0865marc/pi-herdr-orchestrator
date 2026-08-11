@@ -11,11 +11,11 @@ export async function loadConfig(root = PACKAGE_ROOT, env = process.env) {
   if (config.schemaVersion !== 1 || !config.roles?.orchestrator) {
     throw new Error(`Unsupported workflow config: ${file}`);
   }
-  if (env.HERDR_WORKFLOW_PROVIDER) config.provider = env.HERDR_WORKFLOW_PROVIDER;
-  if (env.HERDR_WORKFLOW_LAUNCH_MODE) config.orchestratorLaunchMode = env.HERDR_WORKFLOW_LAUNCH_MODE;
+  if (env.PI_HERDR_ORCHESTRATOR_PROVIDER) config.provider = env.PI_HERDR_ORCHESTRATOR_PROVIDER;
+  if (env.PI_HERDR_ORCHESTRATOR_LAUNCH_MODE) config.orchestratorLaunchMode = env.PI_HERDR_ORCHESTRATOR_LAUNCH_MODE;
   resolveLaunchMode(config);
   for (const role of Object.keys(config.roles)) {
-    const key = `HERDR_WORKFLOW_${role.toUpperCase()}_MODEL`;
+    const key = `PI_HERDR_ORCHESTRATOR_${role.toUpperCase()}_MODEL`;
     if (env[key]) config.roles[role].model = env[key];
   }
   return config;
@@ -32,7 +32,7 @@ export function resolveLaunchMode(config, explicit) {
 export function packageResources(root = PACKAGE_ROOT) {
   return {
     root,
-    workflowExtension: path.join(root, "extensions", "herdr-workflow.ts"),
+    workflowExtension: path.join(root, "extensions", "pi-herdr-orchestrator.ts"),
     guardExtension: path.join(root, "extensions", "role-guard.ts"),
     autoInspectorsExtension: path.join(root, "extensions", "auto-inspectors.ts"),
     subagentsExtension: path.join(root, "node_modules", "pi-subagents", "index.ts"),

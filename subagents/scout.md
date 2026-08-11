@@ -1,6 +1,6 @@
 ---
 name: scout
-package: herdr-workflow
+package: pi-herdr-orchestrator
 description: Read-only codebase reconnaissance for a primary Herdr workflow role
 tools: read, grep, find, ls
 thinking: high

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const ASYNC_STARTED = "subagent:async-started";
 const runnerPath = fileURLToPath(new URL("../node_modules/pi-subagents/inspector-runner.mjs", import.meta.url));
-const registryKey = Symbol.for("herdr-workflow:auto-inspectors");
+const registryKey = Symbol.for("pi-herdr-orchestrator:auto-inspectors");
 
 function shellQuote(value: string): string {
   if (process.platform === "win32") return `"${value.replaceAll('"', '\\"')}"`;
@@ -51,14 +51,14 @@ export interface AutoInspectorOptions {
 }
 
 export function installAutoInspectors(pi: ExtensionAPI, options: AutoInspectorOptions = {}): () => void {
-  const role = options.role || process.env.HERDR_WORKFLOW_ROLE;
+  const role = options.role || process.env.PI_HERDR_ORCHESTRATOR_ROLE;
   const sourcePaneId = options.sourcePaneId || process.env.HERDR_PANE_ID;
   if (!role || !sourcePaneId || process.env.PI_SUBAGENT_CHILD === "1" || !pi.events?.on) return () => {};
   const registry = ((globalThis as Record<PropertyKey, unknown>)[registryKey] ??= new Set<string>()) as Set<string>;
-  const instanceKey = `${options.runId || process.env.HERDR_WORKFLOW_RUN_ID || "run"}:${role}:${sourcePaneId}`;
+  const instanceKey = `${options.runId || process.env.PI_HERDR_ORCHESTRATOR_RUN_ID || "run"}:${role}:${sourcePaneId}`;
   if (registry.has(instanceKey)) return () => {};
   registry.add(instanceKey);
-  const requestedMax = options.maxPanes ?? Number.parseInt(process.env.HERDR_WORKFLOW_MAX_INSPECTOR_PANES || "3", 10);
+  const requestedMax = options.maxPanes ?? Number.parseInt(process.env.PI_HERDR_ORCHESTRATOR_MAX_INSPECTOR_PANES || "3", 10);
   const maxPanes = Number.isFinite(requestedMax) ? Math.max(0, Math.min(requestedMax, 6)) : 3;
   const openedRuns = new Set<string>();
   let queue = Promise.resolve();
@@ -74,7 +74,7 @@ export function installAutoInspectors(pi: ExtensionAPI, options: AutoInspectorOp
       openedRuns.add(runId);
       return;
     }
-    const cwd = typeof data.cwd === "string" ? data.cwd : options.roleRoot || process.env.HERDR_WORKFLOW_ROLE_ROOT || process.cwd();
+    const cwd = typeof data.cwd === "string" ? data.cwd : options.roleRoot || process.env.PI_HERDR_ORCHESTRATOR_ROLE_ROOT || process.cwd();
     const split = parseHerdr(await pi.exec(process.env.HERDR_BIN || "herdr", [
       "pane", "split", "--pane", sourcePaneId, "--direction", "right", "--cwd", cwd, "--no-focus",
     ], { timeout: 15_000 }), "Herdr inspector pane split");

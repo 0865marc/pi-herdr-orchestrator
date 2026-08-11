@@ -22,12 +22,12 @@ test("read-only package references are allowed without widening write roots", ()
 });
 
 test("workflow roles cannot recurse or hide foreground subagents", () => {
-  assert.match(decideToolCall({ role: "orchestrator", toolName: "herdr_workflow", input: { action: "start" }, root: "/repo", policy }), /already running/u);
-  assert.match(decideToolCall({ role: "scout", toolName: "subagent", input: { agent: "herdr-workflow.scout" }, root: "/repo", policy }), /workflowScript/u);
+  assert.match(decideToolCall({ role: "orchestrator", toolName: "pi_herdr_orchestrator", input: { action: "start" }, root: "/repo", policy }), /already running/u);
+  assert.match(decideToolCall({ role: "scout", toolName: "subagent", input: { agent: "pi-herdr-orchestrator.scout" }, root: "/repo", policy }), /workflowScript/u);
   assert.match(decideToolCall({ role: "scout", toolName: "subagent", input: { workflowScript: "return runs.run('x', input)", async: false }, root: "/repo", policy }), /asynchronously/u);
   assert.match(decideToolCall({ role: "scout", toolName: "subagent", input: { workflowScript: "return runs.run('x', input)" }, root: "/repo", policy }), /artifacts:false/u);
   assert.match(decideToolCall({ role: "scout", toolName: "subagent", input: { workflowScript: "return runs.run('x', input)", artifacts: false }, root: "/repo", policy }), /mission:false/u);
-  assert.equal(decideToolCall({ role: "scout", toolName: "subagent", input: { workflowScript: "return runs.run('x', { agent: 'herdr-workflow.scout', task: 'inspect' })", artifacts: false, mission: false }, root: "/repo", policy }), null);
+  assert.equal(decideToolCall({ role: "scout", toolName: "subagent", input: { workflowScript: "return runs.run('x', { agent: 'pi-herdr-orchestrator.scout', task: 'inspect' })", artifacts: false, mission: false }, root: "/repo", policy }), null);
   assert.equal(decideToolCall({ role: "scout", toolName: "subagent", input: { action: "inspector.status", id: "run" }, root: "/repo", policy }), null);
 });
 

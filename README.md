@@ -1,108 +1,178 @@
-# Herdr Pi Workflow
+# Pi Herdr Orchestrator
 
-Portable, Pi-first orchestration for long coding tasks. It can promote the current Pi
-conversation into the visible Orchestrator, creates one child Herdr workspace per
-primary role, and uses `pi-subagents` inspector panes for substantial nested
-delegation.
+Turn a normal Pi conversation into a visible, role-based coding workflow in Herdr.
 
-This repository is source-only. Creating or cloning it does not install or activate
-anything.
+`pi-herdr-orchestrator` is intended for substantial coding tasks: multi-file
+changes, architectural work, risky migrations, investigations, and iterative
+implementation/review. Pi remains the conversational control plane while each
+primary role gets a visible Herdr workspace and an isolated Git checkout.
 
-## Topology
+## What it provides
+
+- A persistent **Orchestrator** that investigates, plans, and coordinates the task.
+- A read-only **Scout** for independent discovery.
+- A **Builder** that is the only role allowed to change the task worktree.
+- A read-only **Reviewer** that inspects a verified snapshot of Builder's exact diff.
+- Automatic Herdr inspector panes for bounded `pi-subagents` delegations.
+- Two approval boundaries: one to start discovery and another before implementation.
+- No automatic commits, pushes, merges, rebases, deployments, branch deletion, or
+  worktree cleanup.
 
 ```text
-<project> · orchestrator   Pi control plane
-├── <project> · scout      detached clean-base discovery worktree
-├── <project> · builder    only writer; owns task-branch worktree
-└── <project> · reviewer   verified read-only Builder snapshot
+<project> · orchestrator
+├── <project> · scout
+│   └── subagent inspector panes
+├── <project> · builder
+│   └── subagent inspector panes
+└── <project> · reviewer
+    └── subagent inspector panes
 ```
-
-Each role may launch one of three bundled read-only Pi subagents. A session capability
-ceiling enforces their agent names, read/search-only tools, extension denial, and zero
-nesting depth. Role delegation is asynchronous and each run automatically opens a
-Herdr inspector pane inside its parent's workspace. Builder remains the only writer
-for the task worktree.
 
 ## Requirements
 
-- Node.js 22 or newer.
-- Pi 0.84.1 or newer.
-- Herdr 0.8.0 or newer.
-- Git.
-- Provider authentication configured in the host Pi installation.
+- Node.js 22 or newer
+- Pi 0.84.1 or newer
+- Herdr 0.8.0 or newer
+- Git
+- A working provider configuration in Pi
 
-## Validate the source tree
+Start the workflow from a Pi session running inside Herdr (`HERDR_ENV=1`). Provider
+credentials stay in your normal Pi configuration and are never copied into this
+package.
+
+## Install
+
+With a GitHub SSH key:
+
+```bash
+pi install git:git@github.com:0865marc/pi-herdr-orchestrator
+```
+
+For a public repository clone:
+
+```bash
+pi install git:github.com/0865marc/pi-herdr-orchestrator
+```
+
+That is the complete installation for normal use. `pi install` fetches the package,
+installs its npm dependencies, and registers its extensions and skill. You do not
+also need to run `npm install`.
+
+Start a new Pi session after installation, or run `/reload` in an existing one.
+`pi-herdr-orchestrator` should then appear under **Skills**.
+
+### Local development install
+
+Use this only when developing the package itself:
+
+```bash
+git clone git@github.com:0865marc/pi-herdr-orchestrator.git
+cd pi-herdr-orchestrator
+npm install
+npm run check
+pi install .
+```
+
+A local-path installation is live: newly started or reloaded Pi sessions read the
+current checkout. A Git installation gives you an explicit update boundary.
+
+## Use it in a project
+
+1. Open the project in Herdr.
+2. Start Pi normally in the project pane.
+3. Describe the substantial task you want completed.
+4. Let Pi discover the skill, or invoke it explicitly:
+
+```text
+/skill:pi-herdr-orchestrator
+```
+
+The skill runs environment diagnostics and Git preflight first. It explains the
+configured launch mode and asks whether it may start the workflow. This first
+approval authorizes read-only discovery only. The Orchestrator then presents its
+plan and asks again before starting Builder or creating the writable task worktree.
+
+Startup is idempotent: if the same workflow is already live, Pi points you to its
+Orchestrator instead of creating a duplicate.
+
+## Orchestrator launch modes
+
+Choose the launch mode in [`config/workflow.json`](config/workflow.json):
+
+```json
+{
+  "orchestratorLaunchMode": "isolated"
+}
+```
+
+- `isolated` is the current default. It creates a dedicated
+  `<project> · orchestrator` workspace and leaves the originating chat idle.
+- `adopt-current` promotes the current Pi conversation and Herdr workspace into the
+  Orchestrator. When the workflow finishes, it restores the original model, tools,
+  reasoning level, session name, and workspace labels. This mode is implemented but
+  remains opt-in while it receives end-to-end validation.
+
+Override the mode per machine without editing the repository:
+
+```bash
+export PI_HERDR_ORCHESTRATOR_LAUNCH_MODE=adopt-current
+```
+
+You can configure provider and role models in the same way:
+
+```bash
+export PI_HERDR_ORCHESTRATOR_PROVIDER=openai-codex
+export PI_HERDR_ORCHESTRATOR_ORCHESTRATOR_MODEL=gpt-5.6-sol
+export PI_HERDR_ORCHESTRATOR_BUILDER_MODEL=gpt-5.6-luna
+export PI_HERDR_ORCHESTRATOR_REVIEWER_MODEL=gpt-5.6-luna
+export PI_HERDR_ORCHESTRATOR_SCOUT_MODEL=gpt-5.6-luna
+```
+
+## Runtime data and safety
+
+Bundled resources are resolved relative to the package, so the repository contains
+no machine-specific home paths. Runtime state and linked worktrees live outside the
+installation:
+
+```text
+${XDG_STATE_HOME:-$HOME/.local/state}/pi-herdr-orchestrator/runs/
+${XDG_DATA_HOME:-$HOME/.local/share}/pi-herdr-orchestrator/worktrees/
+```
+
+Only Builder receives write-capable tools for the task checkout. Scout, Reviewer,
+and packaged subagents are restricted to read/search tools. Reviewer gets a detached
+checkout populated from Builder's tracked diff and non-ignored new files; the
+controller verifies the diff and file fingerprints before every review.
+
+Pi does not provide an operating-system sandbox. Read the
+[security notes](docs/security.md) before running untrusted code or unattended tasks.
+
+## Update
+
+Update installed Pi packages with:
+
+```bash
+pi update --extensions
+```
+
+Restart Pi or run `/reload` afterward. If you installed a pinned tag or commit,
+install the desired new ref explicitly.
+
+## Development
+
+Run the complete validation suite before publishing changes:
 
 ```bash
 npm install
 npm run check
 ```
 
-## Install later
+The suite checks extension imports and syntax, path portability, skill metadata,
+policy behavior, Git snapshot fidelity, subagent restrictions, inspector panes, and
+both Orchestrator launch modes.
 
-Local development installation:
+Further reading:
 
-```bash
-pi install /absolute/path/to/herdr-workflow
-```
-
-Git installation after publishing:
-
-```bash
-pi install git:github.com/OWNER/herdr-workflow@TAG
-```
-
-Pi installs the package dependencies, discovers `herdr-long-workflow`, and loads the
-three extensions. `role-guard` and `auto-inspectors` are inert outside sessions carrying
-`HERDR_WORKFLOW_ROLE`; the controller tool performs no action until explicitly called.
-
-A local-path installation is a live development reference: newly started Pi
-processes read the current files immediately. A Git tag or registry version provides
-an explicit update boundary.
-
-Run normal Pi inside a Herdr pane and describe a substantial task. The skill may be
-selected implicitly, or explicitly invoke:
-
-```text
-/skill:herdr-long-workflow
-```
-
-The skill runs diagnostics and preflight, explains whether it will adopt this chat or
-create an isolated workspace, and asks before starting. Implementation still requires
-a separate approval from the Orchestrator.
-
-## Configuration
-
-Edit [`config/workflow.json`](config/workflow.json) to change models, reasoning,
-tools, timeouts, launch mode, or policy. `orchestratorLaunchMode` remains `isolated`
-while adoption is staged; after validation it can be changed to `adopt-current`.
-Override settings per machine without changing the repo:
-
-```bash
-export HERDR_WORKFLOW_PROVIDER=openai-codex
-export HERDR_WORKFLOW_LAUNCH_MODE=isolated
-export HERDR_WORKFLOW_ORCHESTRATOR_MODEL=gpt-5.6-sol
-export HERDR_WORKFLOW_BUILDER_MODEL=gpt-5.6-luna
-export HERDR_WORKFLOW_REVIEWER_MODEL=gpt-5.6-luna
-export HERDR_WORKFLOW_SCOUT_MODEL=gpt-5.6-luna
-```
-
-Runtime files are external:
-
-```text
-${XDG_STATE_HOME:-$HOME/.local/state}/herdr-workflow/runs/
-${XDG_DATA_HOME:-$HOME/.local/share}/herdr-workflow/worktrees/
-```
-
-Credentials remain in the user's normal Pi configuration and are never copied into
-this repository.
-
-## Safety and cleanup
-
-The controller never commits, pushes, merges, rebases, deletes branches, removes
-worktrees, publishes, or deploys. Closing a role workspace preserves its branch and
-worktree. Cleanup remains an explicit manual operation after inspecting uncommitted
-state.
-
-Pi has no built-in OS sandbox. Read [`docs/security.md`](docs/security.md) before using
-the workflow on untrusted code or unattended tasks.
+- [Architecture](docs/architecture.md)
+- [Security model](docs/security.md)
+- [Adopt-current design and rollout](docs/adopt-current-orchestrator.md)

@@ -11,7 +11,7 @@
 
 ## Control actions
 
-The `herdr_workflow` tool exposes:
+The `pi_herdr_orchestrator` tool exposes:
 
 - `doctor` and `preflight`: read-only diagnostics.
 - `start`: adopt the current Pi or create an isolated Orchestrator after explicit
@@ -34,8 +34,8 @@ Orchestrator workspaces.
 No runtime state is written into this package. State defaults to:
 
 ```text
-${XDG_STATE_HOME:-$HOME/.local/state}/herdr-workflow/runs/
-${XDG_DATA_HOME:-$HOME/.local/share}/herdr-workflow/worktrees/
+${XDG_STATE_HOME:-$HOME/.local/state}/pi-herdr-orchestrator/runs/
+${XDG_DATA_HOME:-$HOME/.local/share}/pi-herdr-orchestrator/worktrees/
 ```
 
 Role sessions are stored beside workflow run state. Scout and Reviewer have detached

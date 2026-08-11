@@ -7,7 +7,7 @@ import { runChecked } from "../src/process.mjs";
 import { assertCleanSnapshot, gitSnapshot } from "../src/git.mjs";
 
 test("Git preflight distinguishes clean and dirty repositories", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "herdr-workflow-git-"));
+  const root = await mkdtemp(path.join(tmpdir(), "pi-herdr-orchestrator-git-"));
   await runChecked("git", ["init", "-b", "main", root]);
   await runChecked("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
   await runChecked("git", ["-C", root, "config", "user.name", "Workflow Test"]);

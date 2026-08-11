@@ -33,7 +33,7 @@ project                           project · orchestrator (same Pi session)
    task.
 2. The skill runs doctor and preflight, explains the two approval boundaries, and
    asks permission to create the workflow.
-3. After the user approves, `herdr_workflow.start` adopts the current session instead
+3. After the user approves, `pi_herdr_orchestrator.start` adopts the current session instead
    of creating another workspace.
 4. The approval turn settles. The extension immediately queues the Orchestrator's
    bootstrap message as a new turn in the same conversation. The Orchestrator system

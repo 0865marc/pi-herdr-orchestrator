@@ -8,19 +8,19 @@ import {
 } from "../src/adopted-runtime.mjs";
 
 test("adopted runtime environment is reversible", () => {
-  const env = { HERDR_WORKFLOW_ROLE: "previous", UNRELATED: "preserved" };
+  const env = { PI_HERDR_ORCHESTRATOR_ROLE: "previous", UNRELATED: "preserved" };
   const original = snapshotWorkflowEnvironment(env);
   applyAdoptedEnvironment({
     id: "run-1",
     packageRoot: "/package",
     repository: { root: "/repo" },
   }, { policy: { maxInspectorPanesPerRole: 2 } }, env);
-  assert.equal(env.HERDR_WORKFLOW_ROLE, "orchestrator");
-  assert.equal(env.HERDR_WORKFLOW_RUN_ID, "run-1");
-  assert.equal(env.HERDR_WORKFLOW_MAX_INSPECTOR_PANES, "2");
+  assert.equal(env.PI_HERDR_ORCHESTRATOR_ROLE, "orchestrator");
+  assert.equal(env.PI_HERDR_ORCHESTRATOR_RUN_ID, "run-1");
+  assert.equal(env.PI_HERDR_ORCHESTRATOR_MAX_INSPECTOR_PANES, "2");
   restoreWorkflowEnvironment(original, env);
-  assert.equal(env.HERDR_WORKFLOW_ROLE, "previous");
-  assert.equal(env.HERDR_WORKFLOW_RUN_ID, undefined);
+  assert.equal(env.PI_HERDR_ORCHESTRATOR_ROLE, "previous");
+  assert.equal(env.PI_HERDR_ORCHESTRATOR_RUN_ID, undefined);
   assert.equal(env.UNRELATED, "preserved");
 });
 

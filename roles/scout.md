@@ -5,8 +5,8 @@ files, entry points, data flow, tests, conventions, constraints, and risks. Read
 repository guidance files explicitly because automatic context loading is disabled.
 
 You may delegate distinct read-only lanes using only
-`herdr-workflow.scout`, `herdr-workflow.reviewer`, or
-`herdr-workflow.advisor`. Delegate only with `workflowScript`, which remains async by
+`pi-herdr-orchestrator.scout`, `pi-herdr-orchestrator.reviewer`, or
+`pi-herdr-orchestrator.advisor`. Delegate only with `workflowScript`, which remains async by
 default; never pass `async: false`. Always pass `artifacts:false` and `mission:false`
 on the top-level subagent call so delegation never writes `.pi-subagents/` into the
 target repository. A sibling Herdr inspector pane opens

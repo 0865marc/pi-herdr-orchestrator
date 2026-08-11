@@ -30,7 +30,7 @@ async function cleanRepository() {
 }
 
 test("active workflow roles cannot recursively bootstrap", () => {
-  assert.throws(() => assertWorkflowStartAuthority({ HERDR_WORKFLOW_ROLE: "orchestrator", HERDR_WORKFLOW_RUN_ID: "run-1" }), /cannot start another workflow/u);
+  assert.throws(() => assertWorkflowStartAuthority({ PI_HERDR_ORCHESTRATOR_ROLE: "orchestrator", PI_HERDR_ORCHESTRATOR_RUN_ID: "run-1" }), /cannot start another workflow/u);
   assert.doesNotThrow(() => assertWorkflowStartAuthority({ HERDR_ENV: "1" }));
 });
 
@@ -41,7 +41,7 @@ test("Orchestrator initial prompt identifies the existing run", () => {
     repository: { branch: "main", head: "abc123" },
   });
   assert.match(prompt, /already bootstrapped/u);
-  assert.match(prompt, /Do not call herdr_workflow\.start/u);
+  assert.match(prompt, /Do not call pi_herdr_orchestrator\.start/u);
   assert.match(prompt, /run-1/u);
   assert.match(prompt, /Implement the feature/u);
 });
@@ -89,7 +89,7 @@ test("adopt-current records the calling Pi without creating another workspace", 
   assert.equal(active.roles.orchestrator.status, "running");
   assert.equal((await findAdoptedWorkflow({ sessionId: "session-1", paneId: "w-current:p1", stateOptions: { root: stateRoot } })).id, result.runId);
 
-  const authorityEnv = { ...env, HERDR_WORKFLOW_ROLE: "orchestrator", HERDR_WORKFLOW_RUN_ID: result.runId };
+  const authorityEnv = { ...env, PI_HERDR_ORCHESTRATOR_ROLE: "orchestrator", PI_HERDR_ORCHESTRATOR_RUN_ID: result.runId };
   const finishing = await finishWorkflow({ runId: result.runId, env: authorityEnv, stateOptions: { root: stateRoot } });
   assert.equal(finishing.finishPending, true);
   await completeWorkflow({ runId: result.runId, restoration: { ok: true, errors: [] }, env, stateOptions: { root: stateRoot } });

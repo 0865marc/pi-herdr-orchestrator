@@ -3,12 +3,12 @@
 ## Components
 
 - `pi-herdr-orchestrator` is the discoverable entry point.
-- `herdr_workflow` is the deterministic Pi tool for primary workspace lifecycle.
+- `pi_herdr_orchestrator` is the deterministic Pi tool for primary workspace lifecycle.
 - `role-guard` applies role-aware path and tool policy inside workflow sessions.
 - `auto-inspectors` turns every async child-run event into a visible Herdr pane.
 - `pi-subagents` supplies nested delegation, missions, FleetView, and Herdr inspector
   panes.
-- Packaged `herdr-workflow.*` subagents provide bounded read-only child roles.
+- Packaged `pi-herdr-orchestrator.*` subagents provide bounded read-only child roles.
 - Role prompts define authority and output contracts.
 - XDG state stores run metadata, sessions, and linked worktrees outside the package.
 

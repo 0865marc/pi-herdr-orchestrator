@@ -9,7 +9,7 @@ import { createJiti } from "jiti";
 
 const exec = promisify(execFile);
 const jiti = createJiti(import.meta.url);
-const { default: herdrWorkflow } = await jiti.import("../extensions/herdr-workflow.ts");
+const { default: piHerdrOrchestrator } = await jiti.import("../extensions/pi-herdr-orchestrator.ts");
 
 async function fixtureRepository() {
   const root = await mkdtemp(path.join(tmpdir(), "herdr-adopt-extension-repo-"));
@@ -52,14 +52,14 @@ writeFileSync(1, JSON.stringify(response));
     HERDR_PANE_ID: "w-current:p1",
     FAKE_HERDR_LOG: herdrLog,
   });
-  delete process.env.HERDR_WORKFLOW_ROLE;
-  delete process.env.HERDR_WORKFLOW_RUN_ID;
+  delete process.env.PI_HERDR_ORCHESTRATOR_ROLE;
+  delete process.env.PI_HERDR_ORCHESTRATOR_RUN_ID;
 
   const originalModel = { provider: "fixture", id: "normal" };
   const targetModel = { provider: "openai-codex", id: "gpt-5.6-sol" };
   let model = originalModel;
   let thinking = "medium";
-  let tools = ["read", "bash", "edit", "write", "herdr_workflow", "subagent", "subagent_wait", "grep", "find", "ls"];
+  let tools = ["read", "bash", "edit", "write", "pi_herdr_orchestrator", "subagent", "subagent_wait", "grep", "find", "ls"];
   let sessionName = "project session";
   let failTargetModel = false;
   const userMessages = [];
@@ -102,7 +102,7 @@ writeFileSync(1, JSON.stringify(response));
   };
 
   try {
-    herdrWorkflow(pi);
+    piHerdrOrchestrator(pi);
     const started = await workflowTool.execute("call-start", {
       action: "start",
       repository,
@@ -116,10 +116,10 @@ writeFileSync(1, JSON.stringify(response));
     await handlers.get("agent_settled")[0]({}, ctx);
     assert.equal(model, targetModel);
     assert.equal(thinking, "max");
-    assert.deepEqual(tools, ["read", "grep", "find", "ls", "herdr_workflow", "subagent", "subagent_wait"]);
+    assert.deepEqual(tools, ["read", "grep", "find", "ls", "pi_herdr_orchestrator", "subagent", "subagent_wait"]);
     assert.equal(sessionName, `${path.basename(repository)} · orchestrator`);
-    assert.equal(process.env.HERDR_WORKFLOW_ROLE, "orchestrator");
-    assert.equal(process.env.HERDR_WORKFLOW_RUN_ID, started.details.runId);
+    assert.equal(process.env.PI_HERDR_ORCHESTRATOR_ROLE, "orchestrator");
+    assert.equal(process.env.PI_HERDR_ORCHESTRATOR_RUN_ID, started.details.runId);
     assert.equal(userMessages.length, 1);
     assert.match(userMessages[0], /already bootstrapped/u);
 
@@ -139,8 +139,8 @@ writeFileSync(1, JSON.stringify(response));
     assert.equal(model, originalModel);
     assert.equal(thinking, "medium");
     assert.equal(sessionName, "project session");
-    assert.equal(process.env.HERDR_WORKFLOW_ROLE, undefined);
-    assert.equal(process.env.HERDR_WORKFLOW_RUN_ID, undefined);
+    assert.equal(process.env.PI_HERDR_ORCHESTRATOR_ROLE, undefined);
+    assert.equal(process.env.PI_HERDR_ORCHESTRATOR_RUN_ID, undefined);
     const calls = (await readFile(herdrLog, "utf8")).trim().split("\n").map((line) => JSON.parse(line));
     assert.equal(calls.some((args) => args[0] === "workspace" && args[1] === "create"), false);
     assert.equal(calls.some((args) => args[0] === "agent" && args[1] === "start"), false);
@@ -159,7 +159,7 @@ writeFileSync(1, JSON.stringify(response));
     assert.equal(model, originalModel);
     assert.equal(thinking, "medium");
     assert.equal(sessionName, "project session");
-    assert.equal(process.env.HERDR_WORKFLOW_ROLE, undefined);
+    assert.equal(process.env.PI_HERDR_ORCHESTRATOR_ROLE, undefined);
     assert.match(userMessages.at(-1), /adoption failed/u);
   } finally {
     for (const key of Object.keys(process.env)) {

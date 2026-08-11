@@ -7,8 +7,8 @@ Start with `git status --short` and `git diff HEAD`; the snapshot may stage newl
 tracked files so a bare `git diff` is not complete.
 
 Use only configured read-only/test shell commands. You may fan out distinct review
-lanes using only `herdr-workflow.reviewer`, `herdr-workflow.scout`, or
-`herdr-workflow.advisor`. Delegate only through asynchronous `workflowScript`; the
+lanes using only `pi-herdr-orchestrator.reviewer`, `pi-herdr-orchestrator.scout`, or
+`pi-herdr-orchestrator.advisor`. Delegate only through asynchronous `workflowScript`; the
 top-level subagent call must set `artifacts:false` and `mission:false` so delegation
 never writes `.pi-subagents/` into the review snapshot. The workflow extension opens
 each sibling Herdr inspector automatically, up to the configured limit. Children

@@ -1,10 +1,10 @@
 export const WORKFLOW_ENV_KEYS = [
-  "HERDR_WORKFLOW_RUN_ID",
-  "HERDR_WORKFLOW_ROLE",
-  "HERDR_WORKFLOW_REPO_ROOT",
-  "HERDR_WORKFLOW_ROLE_ROOT",
-  "HERDR_WORKFLOW_PACKAGE_ROOT",
-  "HERDR_WORKFLOW_MAX_INSPECTOR_PANES",
+  "PI_HERDR_ORCHESTRATOR_RUN_ID",
+  "PI_HERDR_ORCHESTRATOR_ROLE",
+  "PI_HERDR_ORCHESTRATOR_REPO_ROOT",
+  "PI_HERDR_ORCHESTRATOR_ROLE_ROOT",
+  "PI_HERDR_ORCHESTRATOR_PACKAGE_ROOT",
+  "PI_HERDR_ORCHESTRATOR_MAX_INSPECTOR_PANES",
 ];
 
 export function snapshotWorkflowEnvironment(env = process.env) {
@@ -12,12 +12,12 @@ export function snapshotWorkflowEnvironment(env = process.env) {
 }
 
 export function applyAdoptedEnvironment(state, config, env = process.env) {
-  env.HERDR_WORKFLOW_RUN_ID = state.id;
-  env.HERDR_WORKFLOW_ROLE = "orchestrator";
-  env.HERDR_WORKFLOW_REPO_ROOT = state.repository.root;
-  env.HERDR_WORKFLOW_ROLE_ROOT = state.repository.root;
-  env.HERDR_WORKFLOW_PACKAGE_ROOT = state.packageRoot;
-  env.HERDR_WORKFLOW_MAX_INSPECTOR_PANES = String(config.policy?.maxInspectorPanesPerRole ?? 3);
+  env.PI_HERDR_ORCHESTRATOR_RUN_ID = state.id;
+  env.PI_HERDR_ORCHESTRATOR_ROLE = "orchestrator";
+  env.PI_HERDR_ORCHESTRATOR_REPO_ROOT = state.repository.root;
+  env.PI_HERDR_ORCHESTRATOR_ROLE_ROOT = state.repository.root;
+  env.PI_HERDR_ORCHESTRATOR_PACKAGE_ROOT = state.packageRoot;
+  env.PI_HERDR_ORCHESTRATOR_MAX_INSPECTOR_PANES = String(config.policy?.maxInspectorPanesPerRole ?? 3);
 }
 
 export function restoreWorkflowEnvironment(snapshot, env = process.env) {

@@ -1,6 +1,6 @@
 ---
 name: advisor
-package: herdr-workflow
+package: pi-herdr-orchestrator
 description: Read-only architecture and decision-consistency advice for a Herdr workflow role
 tools: read, grep, find, ls
 thinking: high

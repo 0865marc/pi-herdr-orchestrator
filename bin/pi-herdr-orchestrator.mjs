@@ -50,7 +50,6 @@ function usage() {
   ${executable} close-role --run ID --role ROLE --approved
 
 The skill is the primary entry point. This CLI is a deterministic diagnostic fallback.
-The legacy command name 'herdr-workflow' remains available for compatibility.
 No command commits, pushes, merges, rebases, deletes branches, or removes worktrees.`;
 }
 

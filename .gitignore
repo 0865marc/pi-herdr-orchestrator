@@ -6,5 +6,5 @@ coverage/
 .env.*
 auth.json
 sessions/
-.herdr-workflow/
+.pi-herdr-orchestrator/
 .pi-subagents/

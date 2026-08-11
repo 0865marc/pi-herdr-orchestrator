@@ -30,12 +30,12 @@ function runtimeDirectory(runId, role, stateOptions = {}) {
 
 function workflowEnv(state, role, cwd, root = PACKAGE_ROOT, config = {}) {
   return {
-    HERDR_WORKFLOW_RUN_ID: state.id,
-    HERDR_WORKFLOW_ROLE: role,
-    HERDR_WORKFLOW_REPO_ROOT: state.repository.root,
-    HERDR_WORKFLOW_ROLE_ROOT: cwd,
-    HERDR_WORKFLOW_PACKAGE_ROOT: root,
-    HERDR_WORKFLOW_MAX_INSPECTOR_PANES: String(config.policy?.maxInspectorPanesPerRole ?? 3),
+    PI_HERDR_ORCHESTRATOR_RUN_ID: state.id,
+    PI_HERDR_ORCHESTRATOR_ROLE: role,
+    PI_HERDR_ORCHESTRATOR_REPO_ROOT: state.repository.root,
+    PI_HERDR_ORCHESTRATOR_ROLE_ROOT: cwd,
+    PI_HERDR_ORCHESTRATOR_PACKAGE_ROOT: root,
+    PI_HERDR_ORCHESTRATOR_MAX_INSPECTOR_PANES: String(config.policy?.maxInspectorPanesPerRole ?? 3),
   };
 }
 
@@ -44,13 +44,13 @@ function assertApproved(approved, action) {
 }
 
 export function assertWorkflowStartAuthority(env = process.env) {
-  if (env.HERDR_WORKFLOW_ROLE || env.HERDR_WORKFLOW_RUN_ID) {
+  if (env.PI_HERDR_ORCHESTRATOR_ROLE || env.PI_HERDR_ORCHESTRATOR_RUN_ID) {
     throw new Error("An active workflow role cannot start another workflow. Continue through the owning Orchestrator.");
   }
 }
 
 function assertOrchestratorAuthority(state, env = process.env) {
-  if (env.HERDR_WORKFLOW_ROLE !== "orchestrator" || env.HERDR_WORKFLOW_RUN_ID !== state.id) {
+  if (env.PI_HERDR_ORCHESTRATOR_ROLE !== "orchestrator" || env.PI_HERDR_ORCHESTRATOR_RUN_ID !== state.id) {
     throw new Error("Only the owning top-level Orchestrator may control workflow roles.");
   }
 }
@@ -70,7 +70,7 @@ function roleRecord(response, workspaceId, paneId, name, cwd) {
 export function orchestratorInitialPrompt(state) {
   return [
     `You are already bootstrapped as the Orchestrator for workflow run ${state.id}.`,
-    "Do not call herdr_workflow.start. Use status and start_role to coordinate this existing run.",
+    "Do not call pi_herdr_orchestrator.start. Use status and start_role to coordinate this existing run.",
     `The approved clean base is ${state.repository.branch}@${state.repository.head}.`,
     "",
     "User task:",

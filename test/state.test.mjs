@@ -6,12 +6,12 @@ import path from "node:path";
 import { dataRoot, listStates, readState, stateRoot, worktreePathFor, writeState } from "../src/state.mjs";
 
 test("state and worktree paths honor XDG directories", async () => {
-  const base = await mkdtemp(path.join(tmpdir(), "herdr-workflow-state-"));
+  const base = await mkdtemp(path.join(tmpdir(), "pi-herdr-orchestrator-state-"));
   const env = { XDG_STATE_HOME: path.join(base, "state"), XDG_DATA_HOME: path.join(base, "data") };
-  assert.equal(stateRoot(env, "/unused"), path.join(base, "state", "herdr-workflow", "runs"));
-  assert.equal(dataRoot(env, "/unused"), path.join(base, "data", "herdr-workflow"));
+  assert.equal(stateRoot(env, "/unused"), path.join(base, "state", "pi-herdr-orchestrator", "runs"));
+  assert.equal(dataRoot(env, "/unused"), path.join(base, "data", "pi-herdr-orchestrator"));
   const worktree = worktreePathFor({ repository: "/repo/example", project: "example", task: "Long task", runId: "run-1" }, { env, home: "/unused" });
-  assert.ok(worktree.startsWith(path.join(base, "data", "herdr-workflow", "worktrees")));
+  assert.ok(worktree.startsWith(path.join(base, "data", "pi-herdr-orchestrator", "worktrees")));
 
   const state = { schemaVersion: 1, id: "run-1", roles: {} };
   const root = stateRoot(env, "/unused");
