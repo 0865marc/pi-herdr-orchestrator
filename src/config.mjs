@@ -36,7 +36,10 @@ export function packageResources(root = PACKAGE_ROOT) {
     guardExtension: path.join(root, "extensions", "role-guard.ts"),
     autoInspectorsExtension: path.join(root, "extensions", "auto-inspectors.ts"),
     askUserQuestionExtension: path.join(root, "extensions", "ask-user-question.ts"),
+    ponytailBuilderExtension: path.join(root, "extensions", "ponytail-builder.ts"),
     askUserQuestionPackage: path.join(root, "node_modules", "@juicesharp", "rpiv-ask-user-question", "index.ts"),
+    ponytailInstructions: path.join(root, "node_modules", "@dietrichgebert", "ponytail", "hooks", "ponytail-instructions.js"),
+    ponytailReviewSkill: path.join(root, "node_modules", "@dietrichgebert", "ponytail", "skills", "ponytail-review"),
     subagentsExtension: path.join(root, "node_modules", "pi-subagents", "index.ts"),
     subagentsSkill: path.join(root, "node_modules", "pi-subagents", "skills", "pi-subagents"),
   };
@@ -71,6 +74,9 @@ export function roleArgs({ role, agentName, root = PACKAGE_ROOT, config, session
       "--extension", resources.askUserQuestionExtension,
     );
   }
+  if (role === "builder") {
+    args.push("--extension", resources.ponytailBuilderExtension);
+  }
   args.push(
     "--extension", resources.subagentsExtension,
     "--extension", resources.autoInspectorsExtension,
@@ -81,6 +87,9 @@ export function roleArgs({ role, agentName, root = PACKAGE_ROOT, config, session
     "--append-system-prompt", path.join(root, "roles", `${role}.md`),
     "--name", agentName,
   );
+  if (role === "reviewer") {
+    args.push("--skill", resources.ponytailReviewSkill);
+  }
   if (config.loadContextFiles === false) args.push("--no-context-files");
   if (sessionDir) args.push("--session-dir", sessionDir);
   return args;

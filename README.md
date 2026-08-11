@@ -13,6 +13,7 @@ primary role gets a visible Herdr workspace and an isolated Git checkout.
 - A read-only **Scout** for independent discovery.
 - A **Builder** that is the only role allowed to change the task worktree.
 - A read-only **Reviewer** that inspects a verified snapshot of Builder's exact diff.
+- Role-scoped Ponytail guidance for a lean Builder and a separate complexity review.
 - Structured decision dialogs that present concrete options while planning.
 - Automatic Herdr inspector panes for bounded `pi-subagents` delegations.
 - Two approval boundaries: one to start discovery and another before implementation.
@@ -117,6 +118,22 @@ Use arrow keys and `Enter` to select, `Tab` to move between questions, `n` to at
 a note, or `Esc` to cancel. A cancellation or UI failure never counts as approval;
 the Orchestrator falls back to a plain chat question and waits.
 
+## Role-scoped Ponytail
+
+The package pins
+[`@dietrichgebert/ponytail`](https://pi.dev/packages/@dietrichgebert/ponytail)
+to `4.9.0`, but does not load it globally:
+
+- Builder receives Ponytail's `full` implementation guidance through a local adapter.
+  The adapter does not expose Ponytail commands that can change global user config.
+- Reviewer discovers only the bundled `ponytail-review` skill and uses it after its
+  normal correctness, security, and plan-compliance pass.
+- normal Pi, Orchestrator, Scout, and nested subagents receive neither behavior.
+
+No separate Ponytail installation is needed. Updating it is an intentional repository
+change: review the new release, change the exact dependency, run the suite, and update
+the lockfile.
+
 ## Orchestrator launch modes
 
 Choose the launch mode in [`config/workflow.json`](config/workflow.json):
@@ -170,6 +187,12 @@ The questionnaire extension is pinned to version `2.4.0`. It makes no model or
 network calls of its own. It reads optional user configuration and launches Pi's
 configured external editor only when you explicitly request that from the dialog.
 
+Context Mode is intentionally **not installed or enabled**. Its command, network,
+indexing, and maintenance surface needs a dedicated role boundary before it can safely
+join this workflow. See the separate
+[Context Mode security design](docs/context-mode-security-design.md) for the proposed
+tool matrix, isolation model, rollout, and acceptance gates.
+
 Pi does not provide an operating-system sandbox. Read the
 [security notes](docs/security.md) before running untrusted code or unattended tasks.
 
@@ -201,4 +224,5 @@ Further reading:
 
 - [Architecture](docs/architecture.md)
 - [Security model](docs/security.md)
+- [Context Mode security design](docs/context-mode-security-design.md)
 - [Adopt-current design and rollout](docs/adopt-current-orchestrator.md)

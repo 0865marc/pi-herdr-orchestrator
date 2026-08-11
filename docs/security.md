@@ -21,6 +21,9 @@ not a hard privilege boundary.
   nesting; the top-level Builder is the single writer.
 - Builder Bash blocks common destructive, history-changing, privilege, and publishing
   patterns.
+- Builder alone receives pinned Ponytail `full` guidance through a fixed adapter;
+  normal Pi and other workflow roles do not load its extension. Reviewer receives only
+  the `ponytail-review` skill, subordinate to correctness, security, and approved scope.
 - Child processes are launched without a shell by the controller.
 - Nested delegation must use asynchronous `workflowScript`; inspector panes are
   opened automatically and are read-only.
@@ -34,6 +37,15 @@ removal, and branch deletion are absent by design.
 with the Pi process's user permissions. It performs no model or network calls, reads
 optional XDG configuration, and may launch the configured external editor only after
 an explicit `Ctrl+G` action in its custom-answer editor.
+
+`@dietrichgebert/ponytail` is pinned to `4.9.0`. The Builder adapter imports only its
+instruction builder in fixed `full` mode and does not register its commands, so a
+workflow role cannot use Ponytail to write global user configuration. The Reviewer
+skill is prompt content and has no tools of its own.
+
+Context Mode is not installed or enabled. Direct registration would bypass parts of
+the current tool model; required isolation and rollout gates live in the separate
+[Context Mode security design](context-mode-security-design.md).
 
 ## Not a hard boundary
 

@@ -8,6 +8,10 @@
 - `auto-inspectors` turns every async child-run event into a visible Herdr pane.
 - `ask-user-question` wraps the pinned questionnaire extension for user-owned
   planning decisions and explicit plan approval.
+- `ponytail-builder` injects the pinned Ponytail `full` guidance into Builder only,
+  without installing Ponytail's global configuration commands.
+- Reviewer alone receives the pinned `ponytail-review` skill as a secondary,
+  non-authoritative complexity pass.
 - `pi-subagents` supplies nested delegation, missions, FleetView, and Herdr inspector
   panes.
 - Packaged `pi-herdr-orchestrator.*` subagents provide bounded read-only child roles.
@@ -52,6 +56,15 @@ zero. This enforcement does not depend on a child inheriting the parent extensio
 The questionnaire extension loads in normal Pi so `adopt-current` can activate it
 without replacing the process. Isolated Orchestrators load the same local wrapper
 explicitly. Scout, Builder, Reviewer, and nested subagents never receive the tool.
+
+Ponytail has the inverse placement: normal Pi, Orchestrator, Scout, and nested
+subagents do not load it. Builder loads the fixed local guidance adapter, while
+Reviewer loads only the review skill. This preserves the main role contracts and
+prevents a third-party prompt from changing orchestration or delegation behavior.
+
+Context Mode is not part of the runtime architecture. Its proposed isolated MCP and
+policy boundary is documented in the
+[Context Mode security design](context-mode-security-design.md).
 
 ## Portability boundary
 

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig, packageResources, PACKAGE_ROOT, resolveLaunchMode, roleArgs } from "../src/config.mjs";
 
@@ -37,12 +38,42 @@ test("role arguments resolve package resources without a fixed home directory", 
     packageResources().askUserQuestionPackage,
     path.join(PACKAGE_ROOT, "node_modules", "@juicesharp", "rpiv-ask-user-question", "index.ts"),
   );
+  assert.equal(
+    packageResources().ponytailInstructions,
+    path.join(PACKAGE_ROOT, "node_modules", "@dietrichgebert", "ponytail", "hooks", "ponytail-instructions.js"),
+  );
+  assert.equal(
+    packageResources().ponytailReviewSkill,
+    path.join(PACKAGE_ROOT, "node_modules", "@dietrichgebert", "ponytail", "skills", "ponytail-review"),
+  );
   assert.ok(args.includes(path.join(PACKAGE_ROOT, "node_modules", "pi-subagents", "index.ts")));
   assert.ok(config.roles.orchestrator.tools.includes("ask_user_question"));
   const builderArgs = roleArgs({ role: "builder", agentName: "fixture-builder", config });
+  const reviewerArgs = roleArgs({ role: "reviewer", agentName: "fixture-reviewer", config });
+  const scoutArgs = roleArgs({ role: "scout", agentName: "fixture-scout", config });
+  const ponytailBuilder = path.join(PACKAGE_ROOT, "extensions", "ponytail-builder.ts");
+  const ponytailReview = path.join(PACKAGE_ROOT, "node_modules", "@dietrichgebert", "ponytail", "skills", "ponytail-review");
   assert.ok(!builderArgs.includes(path.join(PACKAGE_ROOT, "extensions", "ask-user-question.ts")));
   assert.ok(!config.roles.builder.tools.includes("ask_user_question"));
+  assert.ok(builderArgs.includes(ponytailBuilder));
+  assert.ok(!builderArgs.includes(ponytailReview));
+  assert.ok(reviewerArgs.includes(ponytailReview));
+  assert.ok(!reviewerArgs.includes(ponytailBuilder));
+  assert.ok(!args.includes(ponytailBuilder));
+  assert.ok(!args.includes(ponytailReview));
+  assert.ok(!scoutArgs.includes(ponytailBuilder));
+  assert.ok(!scoutArgs.includes(ponytailReview));
   assert.ok(args.includes("--no-context-files"));
   assert.ok(args.includes("--no-approve"));
   assert.ok(!args.some((value) => value.includes("~") || value.includes("${HOME}")));
+});
+
+test("normal Pi does not load Ponytail globally and Context Mode stays design-only", async () => {
+  const manifest = JSON.parse(await readFile(path.join(PACKAGE_ROOT, "package.json"), "utf8"));
+  assert.ok(!manifest.pi.extensions.some((entry) => entry.includes("ponytail")));
+  assert.ok(!manifest.pi.skills.some((entry) => entry.includes("ponytail")));
+  assert.equal(manifest.dependencies["context-mode"], undefined);
+  assert.ok(!manifest.pi.extensions.some((entry) => entry.includes("context-mode")));
+  const config = await loadConfig();
+  assert.ok(Object.values(config.roles).every((role) => role.tools.every((tool) => !tool.startsWith("ctx_"))));
 });
