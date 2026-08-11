@@ -15,7 +15,7 @@ primary role gets a visible Herdr workspace and an isolated Git checkout.
 - A read-only **Reviewer** that inspects a verified snapshot of Builder's exact diff.
 - Role-scoped Ponytail guidance for a lean Builder and a separate complexity review.
 - Structured decision dialogs that present concrete options while planning.
-- Automatic Herdr inspector panes for bounded `pi-subagents` delegations.
+- Task-labelled Herdr inspector panes for bounded `pi-subagents` delegations.
 - Two approval boundaries: one to start discovery and another before implementation.
 - No automatic commits, pushes, merges, rebases, deployments, branch deletion, or
   worktree cleanup.
@@ -96,6 +96,24 @@ plan and asks again before starting Builder or creating the writable task worktr
 
 Startup is idempotent: if the same workflow is already live, Pi points you to its
 Orchestrator instead of creating a duplicate.
+
+## Adaptive parallelism
+
+The Orchestrator uses the approved plan and role handoffs to propose concrete
+`Parallel support candidates` for Builder and `Parallel review candidates` for
+Reviewer. Each candidate names an independent scope, question, expected evidence,
+and short display label. Generic fixed lanes are not imposed.
+
+Builder checks the proposal against the repository; Reviewer checks it against the
+complete real diff. Either role may merge, replace, add, or reject candidates and may
+launch anywhere from zero to the configured limit. Selected children remain
+read-only—Builder is still the sole writer—and run asynchronously while the parent
+continues its own work.
+
+Every child in a parallel workflow gets its own pane inside the owning role workspace,
+named from the task label, for example `subagent · course migration`. The default
+limit is three panes per primary role. Completed panes remain visible until the next
+fan-out starts, when they are replaced by the new task-labelled views.
 
 ## Interactive planning
 

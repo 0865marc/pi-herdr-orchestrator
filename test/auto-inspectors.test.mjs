@@ -5,11 +5,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import autoInspectors from "../extensions/auto-inspectors.ts";
 
-test("async subagent starts automatically open a non-focused Herdr inspector", async () => {
+test("parallel async subagents each open a child-specific non-focused Herdr inspector", async () => {
   const asyncDir = await mkdtemp(path.join(tmpdir(), "herdr-auto-inspector-"));
   const eventHandlers = new Map();
   const lifecycleHandlers = new Map();
   const calls = [];
+  let paneNumber = 1;
   const pi = {
     events: {
       on(name, handler) {
@@ -23,7 +24,7 @@ test("async subagent starts automatically open a non-focused Herdr inspector", a
     async exec(_command, args) {
       calls.push(args);
       const payload = args[0] === "pane" && args[1] === "split"
-        ? { result: { pane: { pane_id: "w-role:p2" } } }
+        ? { result: { pane: { pane_id: `w-role:p${++paneNumber}` } } }
         : { result: { type: "ok" } };
       return { code: 0, stdout: JSON.stringify(payload), stderr: "" };
     },
@@ -38,17 +39,102 @@ test("async subagent starts automatically open a non-focused Herdr inspector", a
   process.env.PI_HERDR_ORCHESTRATOR_MAX_INSPECTOR_PANES = "3";
   try {
     autoInspectors(pi);
-    eventHandlers.get("subagent:async-started")({ id: "run-12345678", asyncDir, cwd: "/repo" });
-    for (let attempt = 0; attempt < 50 && calls.length < 3; attempt += 1) {
+    eventHandlers.get("subagent:async-started")({
+      id: "run-12345678",
+      asyncDir,
+      cwd: "/repo",
+      agent: "pi-herdr-orchestrator.scout",
+      agents: [
+        "pi-herdr-orchestrator.scout",
+        "pi-herdr-orchestrator.reviewer",
+        "pi-herdr-orchestrator.advisor",
+      ],
+      workflowGraph: {
+        nodes: [{
+          kind: "parallel-group",
+          label: "Parallel group (3)",
+          children: [
+            { kind: "agent", agent: "pi-herdr-orchestrator.scout", label: "course migration", flatIndex: 0 },
+            { kind: "agent", agent: "pi-herdr-orchestrator.reviewer", label: "inference limits", flatIndex: 1 },
+            { kind: "agent", agent: "pi-herdr-orchestrator.advisor", label: "admin user flow", flatIndex: 2 },
+          ],
+        }],
+      },
+    });
+    for (let attempt = 0; attempt < 50 && calls.length < 9; attempt += 1) {
       await new Promise((resolve) => setImmediate(resolve));
     }
-    assert.deepEqual(calls.map((args) => args.slice(0, 2)), [["pane", "split"], ["pane", "run"], ["pane", "rename"]]);
-    assert.ok(calls[0].includes("--no-focus"));
-    const binding = JSON.parse(await readFile(path.join(asyncDir, "inspectors", "herdr.json"), "utf8"));
+    assert.deepEqual(calls.map((args) => args.slice(0, 2)), [
+      ["pane", "split"], ["pane", "run"], ["pane", "rename"],
+      ["pane", "split"], ["pane", "run"], ["pane", "rename"],
+      ["pane", "split"], ["pane", "run"], ["pane", "rename"],
+    ]);
+    assert.ok(calls.filter((args) => args[1] === "split").every((args) => args.includes("--no-focus")));
+    const runCommands = calls.filter((args) => args[1] === "run").map((args) => args[3]);
+    assert.ok(runCommands[0].includes("'--index' '0'"));
+    assert.ok(runCommands[1].includes("'--index' '1'"));
+    assert.ok(runCommands[2].includes("'--index' '2'"));
+    assert.deepEqual(
+      calls.filter((args) => args[1] === "rename").map((args) => args[3]),
+      ["subagent · course migration", "subagent · inference limits", "subagent · admin user flow"],
+    );
+    const bindingFile = path.join(asyncDir, "inspectors", "herdr.json");
+    let binding;
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      binding = JSON.parse(await readFile(bindingFile, "utf8"));
+      if (binding.panes?.length === 3) break;
+      await new Promise((resolve) => setImmediate(resolve));
+    }
     assert.equal(binding.runId, "run-12345678");
-    assert.equal(binding.paneId, "w-role:p2");
+    assert.equal(binding.schemaVersion, 2);
+    assert.deepEqual(binding.panes.map((pane) => pane.paneId), ["w-role:p2", "w-role:p3", "w-role:p4"]);
+    assert.deepEqual(binding.panes.map((pane) => pane.index), [0, 1, 2]);
+    assert.deepEqual(binding.panes.map((pane) => pane.label), ["course migration", "inference limits", "admin user flow"]);
+
+    const nextAsyncDir = await mkdtemp(path.join(tmpdir(), "herdr-auto-inspector-next-"));
+    eventHandlers.get("subagent:async-complete")({ runId: "run-12345678" });
+    eventHandlers.get("subagent:async-started")({
+      id: "run-87654321",
+      asyncDir: nextAsyncDir,
+      cwd: "/repo",
+      agent: "pi-herdr-orchestrator.reviewer",
+      workflowGraph: {
+        nodes: [{
+          kind: "step",
+          agent: "pi-herdr-orchestrator.reviewer",
+          label: "follow-up contract",
+          flatIndex: 0,
+        }],
+      },
+    });
+    for (let attempt = 0; attempt < 50 && calls.length < 15; attempt += 1) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    assert.deepEqual(calls.slice(9, 15).map((args) => args.slice(0, 2)), [
+      ["pane", "close"], ["pane", "close"], ["pane", "close"],
+      ["pane", "split"], ["pane", "run"], ["pane", "rename"],
+    ]);
+    assert.equal(calls[14][3], "subagent · follow-up contract");
+
+    const singleAsyncDir = await mkdtemp(path.join(tmpdir(), "herdr-auto-inspector-single-"));
+    eventHandlers.get("subagent:async-complete")({ id: "run-87654321" });
+    eventHandlers.get("subagent:async-started")({
+      id: "run-single",
+      asyncDir: singleAsyncDir,
+      cwd: "/repo",
+      agent: "pi-herdr-orchestrator.advisor",
+    });
+    for (let attempt = 0; attempt < 50 && calls.length < 19; attempt += 1) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    assert.deepEqual(calls.slice(15, 19).map((args) => args.slice(0, 2)), [
+      ["pane", "close"], ["pane", "split"], ["pane", "run"], ["pane", "rename"],
+    ]);
+    assert.ok(!calls[17][3].includes("--index"));
+    assert.equal(calls[18][3], "subagent · advisor");
     lifecycleHandlers.get("session_shutdown")();
     assert.equal(eventHandlers.has("subagent:async-started"), false);
+    assert.equal(eventHandlers.has("subagent:async-complete"), false);
   } finally {
     if (previous.role === undefined) delete process.env.PI_HERDR_ORCHESTRATOR_ROLE; else process.env.PI_HERDR_ORCHESTRATOR_ROLE = previous.role;
     if (previous.pane === undefined) delete process.env.HERDR_PANE_ID; else process.env.HERDR_PANE_ID = previous.pane;

@@ -5,7 +5,7 @@
 - `pi-herdr-orchestrator` is the discoverable entry point.
 - `pi_herdr_orchestrator` is the deterministic Pi tool for primary workspace lifecycle.
 - `role-guard` applies role-aware path and tool policy inside workflow sessions.
-- `auto-inspectors` turns every async child-run event into a visible Herdr pane.
+- `auto-inspectors` turns every flattened async child into a task-labelled Herdr pane.
 - `ask-user-question` wraps the pinned questionnaire extension for user-owned
   planning decisions and explicit plan approval.
 - `ponytail-builder` injects the pinned Ponytail `full` guidance into Builder only,
@@ -36,12 +36,24 @@ normal Pi + skill
 
 Each main role is a top-level interactive Pi session in a Herdr worktree child
 workspace and therefore a legitimate `pi-subagents` parent. Nested children remain
-headless. Their automatic inspector panes are views into lifecycle artifacts, not
-attached child terminals.
+headless. Each automatic pane uses the child's workflow-graph label and flat index to
+show a child-specific lifecycle view; it is not an attached child terminal.
 
 Workflow-role delegation sets `artifacts:false` and `mission:false`. Inspectors use
 the asynchronous lifecycle directory and nested Pi sessions remain under the role
 session, so project-local `.pi-subagents/` files are unnecessary.
+
+Parallel decomposition is adaptive. Before starting Builder, Orchestrator may derive
+support candidates from the approved plan. Before starting Reviewer, it may derive
+review candidates from the plan plus Builder's changed-file and validation handoff.
+Candidates carry an ID, task label, exact scope, question, evidence contract, and
+dependencies. Builder validates them against the repository and Reviewer against the
+complete diff; either role may select zero through the configured maximum, reshape
+the proposal, or proceed alone. Multiple selected lanes use one asynchronous
+`runs.all`, while each flattened child still receives a separate labelled pane.
+Completed panes remain available for inspection until that role starts another
+fan-out; the extension then closes completed views before allocating the configured
+pane budget to the new workflow.
 
 Reviewer does not share Builder's writable checkout. Before each review the controller
 restores its detached checkout, mirrors Builder's tracked diff and non-ignored new

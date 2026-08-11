@@ -25,8 +25,8 @@ not a hard privilege boundary.
   normal Pi and other workflow roles do not load its extension. Reviewer receives only
   the `ponytail-review` skill, subordinate to correctness, security, and approved scope.
 - Child processes are launched without a shell by the controller.
-- Nested delegation must use asynchronous `workflowScript`; inspector panes are
-  opened automatically and are read-only.
+- Nested delegation must use asynchronous `workflowScript`; every selected child gets
+  a task-labelled, read-only inspector pane, up to the configured role limit.
 - Nested calls disable project artifacts and automatic missions. Durable role
   sessions and asynchronous lifecycle state remain outside the target repository,
   which therefore receives no `.pi-subagents/` bookkeeping.

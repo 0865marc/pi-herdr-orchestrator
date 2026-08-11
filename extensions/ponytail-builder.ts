@@ -9,6 +9,7 @@ const WORKFLOW_OVERRIDE = [
   "## Workflow role override",
   "Ponytail is fixed to full for this Builder session; mode and global configuration commands are unavailable.",
   "The approved plan, role authority, repository rules, and required validation remain authoritative.",
+  "Evaluate Orchestrator-proposed parallel support candidates as part of the workflow; keep useful read-only delegation, but do not launch children whose overhead exceeds their value.",
 ].join("\n");
 
 /**

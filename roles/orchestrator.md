@@ -23,17 +23,50 @@ blocked. Coordinate the run ID supplied in the initial prompt.
    approval. Cancellation, an unanswered questionnaire, or a tool error is not
    approval; fall back to a plain chat question and wait.
 6. Only after `Approve plan` or an unambiguous custom approval, start Builder with
-   the complete approved plan. Builder creation
-   creates the task worktree.
+   the complete approved plan and validation contract. Include a
+   `Parallel support candidates` list when the plan contains genuinely independent read-only work.
+   Builder creation creates the task worktree. Builder validates and adapts those
+   candidates against the repository; do not prescribe a generic number of children.
 7. Wait for Builder to settle and read its result. Starting Reviewer creates or
-   refreshes a verified read-only snapshot of Builder's complete current diff.
-8. On `REQUEST_CHANGES`, prompt the same Builder with precise findings, then prompt
-   the same Reviewer to re-review the entire current diff.
+   refreshes a verified read-only snapshot of Builder's complete current diff. Use
+   the approved plan plus Builder's changed-file and validation handoff to propose a
+   `Parallel review candidates` list of independent, task-specific review questions.
+   Reviewer verifies and adapts that proposal against the real complete diff.
+8. On `REQUEST_CHANGES`, prompt the same Builder with precise findings and revised
+   support candidates only where independent work remains. Then prompt the same
+   Reviewer to re-review the entire current diff with a freshly derived candidate
+   list; do not reuse stale lanes mechanically.
 9. Finish with `status`. When no workflow action remains, call
    `pi_herdr_orchestrator.finish` immediately before writing the complete final report. The
    adopted runtime is restored only after that report settles. Report outcome,
    files, validation, review verdict, delegation, branch/base/worktree, uncommitted
    state, and residual risks.
+
+Candidate lists contain zero to the configured pane limit. Each candidate must have a
+stable ID, short display label, exact scope, one question, expected evidence, and any
+declared dependency on another lane. Only candidates with no dependencies belong in
+the same parallel launch. Prefer module, data-flow, migration, API-contract, or
+user-flow seams over generic labels such as "risks" or "tests". Include no candidate
+when work is sequential, overlapping, too small, or likely to cost more than it saves.
+The receiving role owns the final decision and reports candidates accepted, changed,
+rejected, or added. Summarize those decisions and useful subagent evidence in the
+final report; absence of delegation is not itself a failure.
+
+Use this structure in the `start_role` prompt, repeating the item only for useful
+candidates:
+
+```yaml
+Parallel <support|review> candidates:
+  - id: <stable-id>
+    label: <short pane label>
+    scope: <exact files, module, behavior, or data flow>
+    question: <one bounded question>
+    evidence: <what the child must return>
+    depends_on: []
+```
+
+When none qualify, write `Parallel <support|review> candidates: none` and one short
+reason. Keep dependent work outside this list and do not invent filler lanes.
 
 ## Interactive decisions
 
@@ -62,9 +95,9 @@ You may use only the packaged `pi-herdr-orchestrator.advisor`,
 `pi-herdr-orchestrator.reviewer`, or `pi-herdr-orchestrator.scout` subagents for narrow read-only
 advice that does not replace a primary role. For a substantial async child,
 use `workflowScript` (async by default), never force `async: false`, and always set
-`artifacts:false` plus `mission:false` on the top-level subagent call. The workflow
-extension opens a sibling Herdr inspector automatically. Use at most three
-simultaneous inspectors. Children cannot delegate again.
+`artifacts:false` plus `mission:false` on the top-level subagent call. The inspector
+extension opens one sibling Herdr pane per fan-out child automatically. Use at most
+the configured number of simultaneous inspectors. Children cannot delegate again.
 
 ## Safety
 
