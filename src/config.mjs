@@ -35,6 +35,8 @@ export function packageResources(root = PACKAGE_ROOT) {
     workflowExtension: path.join(root, "extensions", "pi-herdr-orchestrator.ts"),
     guardExtension: path.join(root, "extensions", "role-guard.ts"),
     autoInspectorsExtension: path.join(root, "extensions", "auto-inspectors.ts"),
+    builderWritersExtension: path.join(root, "extensions", "builder-writers.ts"),
+    writerGuardExtension: path.join(root, "extensions", "writer-guard.ts"),
     askUserQuestionExtension: path.join(root, "extensions", "ask-user-question.ts"),
     ponytailBuilderExtension: path.join(root, "extensions", "ponytail-builder.ts"),
     askUserQuestionPackage: path.join(root, "node_modules", "@juicesharp", "rpiv-ask-user-question", "index.ts"),
@@ -75,7 +77,10 @@ export function roleArgs({ role, agentName, root = PACKAGE_ROOT, config, session
     );
   }
   if (role === "builder") {
-    args.push("--extension", resources.ponytailBuilderExtension);
+    args.push(
+      "--extension", resources.ponytailBuilderExtension,
+      "--extension", resources.builderWritersExtension,
+    );
   }
   args.push(
     "--extension", resources.subagentsExtension,
@@ -91,6 +96,28 @@ export function roleArgs({ role, agentName, root = PACKAGE_ROOT, config, session
     args.push("--skill", resources.ponytailReviewSkill);
   }
   if (config.loadContextFiles === false) args.push("--no-context-files");
+  if (sessionDir) args.push("--session-dir", sessionDir);
+  return args;
+}
+
+export function writerArgs({ agentName, root = PACKAGE_ROOT, config, sessionDir }) {
+  const roleConfig = config.roles.writer;
+  if (!roleConfig) throw new Error("Workflow config is missing the internal writer role.");
+  const resources = assertPackageReady(root);
+  const args = [
+    "--provider", config.provider,
+    "--model", roleConfig.model,
+    "--thinking", roleConfig.thinking,
+    "--tools", roleConfig.tools.join(","),
+    "--no-extensions",
+    "--extension", resources.writerGuardExtension,
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-approve",
+    "--no-context-files",
+    "--system-prompt", path.join(root, "roles", "writer.md"),
+    "--name", agentName,
+  ];
   if (sessionDir) args.push("--session-dir", sessionDir);
   return args;
 }

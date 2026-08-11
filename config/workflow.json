@@ -44,8 +44,21 @@
         "grep",
         "find",
         "ls",
+        "pi_herdr_writers",
         "subagent",
         "subagent_wait"
+      ]
+    },
+    "writer": {
+      "model": "gpt-5.6-luna",
+      "thinking": "high",
+      "tools": [
+        "read",
+        "edit",
+        "write",
+        "grep",
+        "find",
+        "ls"
       ]
     },
     "reviewer": {
@@ -64,6 +77,9 @@
   },
   "policy": {
     "maxInspectorPanesPerRole": 3,
+    "maxWriterPanesPerWave": 3,
+    "maxWriterFilesPerLane": 200,
+    "maxWriterPatchBytes": 16777216,
     "builderDeniedPatterns": [
       "(^|\\s)git\\s+(commit|push|merge|rebase|reset|clean|checkout|switch|branch\\s+(-d|-D)|worktree\\s+remove)(\\s|$)",
       "(^|\\s)(sudo|su|doas)(\\s|$)",

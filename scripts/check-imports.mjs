@@ -6,4 +6,6 @@ await jiti.import("../extensions/pi-herdr-orchestrator.ts");
 await jiti.import("../extensions/role-guard.ts");
 await jiti.import("../extensions/ask-user-question.ts");
 await jiti.import("../extensions/ponytail-builder.ts");
+await jiti.import("../extensions/builder-writers.ts");
+await jiti.import("../extensions/writer-guard.ts");
 process.stdout.write("Extension imports passed.\n");

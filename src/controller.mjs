@@ -16,8 +16,9 @@ import {
   closeWorkspace,
 } from "./herdr.mjs";
 import { agentName, createRunId, defaultTaskBranch, workspaceLabel } from "./naming.mjs";
-import { listStates, readState, resolveRunId, statePath, worktreePathFor, writeState } from "./state.mjs";
+import { listStates, readState, resolveRunId, statePath, updateState, worktreePathFor, writeState } from "./state.mjs";
 import { syncReviewSnapshot } from "./review-snapshot.mjs";
+import { writerWaveBlocksReview } from "./writer-wave.mjs";
 
 function now() {
   return new Date().toISOString();
@@ -315,19 +316,23 @@ export async function failAdoptedWorkflow({ runId, error, env = process.env, sta
 export async function finishWorkflow({ runId, env = process.env, stateOptions = {} } = {}) {
   assertHerdrContext(env);
   const id = resolveRunId(runId, env);
-  const state = await readState(id, stateOptions);
-  assertOrchestratorAuthority(state, env);
-  if (!["running", "finishing"].includes(state.roles.orchestrator?.status)) {
-    throw new Error(`Workflow '${id}' cannot finish from Orchestrator state '${state.roles.orchestrator?.status ?? "missing"}'.`);
-  }
-  const finishingAt = now();
-  state.roles.orchestrator.status = "finishing";
-  state.roles.orchestrator.finishingAt = finishingAt;
-  if (state.activation) {
-    state.activation.status = "finishing";
-    state.activation.finishingAt = finishingAt;
-  }
-  await writeState(state, stateOptions);
+  const state = await updateState(id, (fresh) => {
+    assertOrchestratorAuthority(fresh, env);
+    if (writerWaveBlocksReview(fresh)) {
+      throw new Error("The workflow cannot finish while a Writer wave still requires integration or reconciliation.");
+    }
+    if (!["running", "finishing"].includes(fresh.roles.orchestrator?.status)) {
+      throw new Error(`Workflow '${id}' cannot finish from Orchestrator state '${fresh.roles.orchestrator?.status ?? "missing"}'.`);
+    }
+    const finishingAt = now();
+    fresh.roles.orchestrator.status = "finishing";
+    fresh.roles.orchestrator.finishingAt = finishingAt;
+    if (fresh.activation) {
+      fresh.activation.status = "finishing";
+      fresh.activation.finishingAt = finishingAt;
+    }
+    return fresh;
+  }, stateOptions);
   return {
     ok: true,
     runId: id,
@@ -423,7 +428,7 @@ export async function startRole({
   if (!["scout", "builder", "reviewer"].includes(role)) throw new Error(`Unsupported main role: ${role}`);
   if (typeof prompt !== "string" || !prompt.trim()) throw new Error("A role assignment prompt is required.");
   const id = resolveRunId(runId, env);
-  const state = await readState(id, stateOptions);
+  let state = await readState(id, stateOptions);
   assertOrchestratorAuthority(state, env);
   if (state.roles[role] && state.roles[role].status !== "closed") throw new Error(`Role '${role}' already exists for this workflow.`);
   const config = await loadConfig(root, env);
@@ -467,12 +472,30 @@ export async function startRole({
   } else if (role === "reviewer") {
     const builder = state.roles.builder;
     if (!builder || builder.status === "closed") throw new Error("Builder must exist before Reviewer starts.");
+    if (writerWaveBlocksReview(state)) throw new Error("Reviewer cannot start until the current Writer wave is integrated or reconciled.");
     const builderInfo = await agentGet(builder.agentName, { signal, env });
     const builderStatus = builderInfo?.result?.agent?.agent_status;
     if (!["idle", "done"].includes(builderStatus)) {
       throw new Error(`Builder must be idle or done before review; current state is '${builderStatus}'.`);
     }
     cwd = await refreshReviewerSnapshot(state, { signal, stateOptions });
+    state = await updateState(id, (fresh) => {
+      assertOrchestratorAuthority(fresh, env);
+      if (fresh.roles.orchestrator?.status !== "running") {
+        throw new Error("Reviewer cannot start while the Orchestrator is finishing or inactive.");
+      }
+      if (fresh.roles[role] && fresh.roles[role].status !== "closed") {
+        throw new Error(`Role '${role}' already exists for this workflow.`);
+      }
+      if (writerWaveBlocksReview(fresh)) {
+        throw new Error("Reviewer cannot start until the current Writer wave is integrated or reconciled.");
+      }
+      if (!fresh.roles.builder || fresh.roles.builder.status === "closed" || fresh.roles.builder.status === "closing") {
+        throw new Error("Builder must remain active while Reviewer starts.");
+      }
+      fresh.roles[role] = { agentName: name, cwd, status: "preparing", reservedAt: now() };
+      return fresh;
+    }, stateOptions);
   } else {
     await assertSnapshotUnchanged(state.repository, { signal });
     cwd = await ensureDetachedRoleWorktree(state, "scout", { signal, stateOptions });
@@ -545,6 +568,7 @@ export async function promptRole({ runId, role, prompt, wait = true, timeoutMs, 
   const status = info?.result?.agent?.agent_status;
   if (status === "working") throw new Error(`Role '${role}' is already working.`);
   if (role === "reviewer") {
+    if (writerWaveBlocksReview(state)) throw new Error("Reviewer cannot refresh until the current Writer wave is integrated or reconciled.");
     const builder = state.roles.builder;
     const builderInfo = await agentGet(builder.agentName, { signal, env });
     const builderStatus = builderInfo?.result?.agent?.agent_status;
@@ -607,11 +631,40 @@ export async function closeRole({ runId, role, approved = false, env = process.e
   assertApproved(approved, "Closing a role workspace");
   assertHerdrContext(env);
   if (role === "orchestrator") throw new Error("The Orchestrator cannot close its own workspace through this tool.");
-  const { state, record } = await roleTarget(runId, role, env, stateOptions);
-  await closeWorkspace(record.workspaceId, { signal, env });
-  state.roles[role].status = "closed";
-  state.roles[role].closedAt = now();
-  await writeState(state, stateOptions);
+  const { id } = await roleTarget(runId, role, env, stateOptions);
+  let state = await updateState(id, (fresh) => {
+    assertOrchestratorAuthority(fresh, env);
+    const freshRecord = fresh.roles[role];
+    if (!freshRecord || freshRecord.status === "closed") throw new Error(`Role '${role}' is not active.`);
+    if (!freshRecord.workspaceId || !freshRecord.paneId || !freshRecord.agentName) {
+      throw new Error(`Role '${role}' never reached an active workspace; inspect workflow status for recovery details.`);
+    }
+    if (role === "builder" && writerWaveBlocksReview(fresh)) {
+      throw new Error("Builder cannot close while a Writer wave still requires integration or reconciliation.");
+    }
+    if (role === "builder" && fresh.roles.reviewer && fresh.roles.reviewer.status !== "closed") {
+      throw new Error("Builder cannot close while Reviewer is active or being prepared.");
+    }
+    freshRecord.status = "closing";
+    freshRecord.closingAt = now();
+    return fresh;
+  }, stateOptions);
+  const record = state.roles[role];
+  try {
+    await closeWorkspace(record.workspaceId, { signal, env });
+  } catch (error) {
+    await updateState(id, (fresh) => {
+      fresh.roles[role].status = "close_failed";
+      fresh.roles[role].closeError = error instanceof Error ? error.message : String(error);
+      return fresh;
+    }, stateOptions);
+    throw error;
+  }
+  state = await updateState(id, (fresh) => {
+    fresh.roles[role].status = "closed";
+    fresh.roles[role].closedAt = now();
+    return fresh;
+  }, stateOptions);
   return {
     ok: true,
     role,

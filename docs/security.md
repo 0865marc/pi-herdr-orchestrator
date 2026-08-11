@@ -16,9 +16,25 @@ not a hard privilege boundary.
 - Only normal Pi and the Orchestrator load `ask_user_question`; role policy never
   treats a cancelled, unanswered, or failed questionnaire as approval.
 - Reviewer cannot write and Bash is limited to configured read-only/test prefixes.
-- A `pi-subagents` capability ceiling restricts all nested agents to three packaged
+- A `pi-subagents` capability ceiling restricts ordinary nested agents to three packaged
   read-only definitions, four read/search tools, no extra extensions, and no further
-  nesting; the top-level Builder is the single writer.
+  nesting.
+- The Builder-only Writer controller accepts no agent name or arbitrary artifact path.
+  It creates a fixed no-shell Pi process per lane, records its exact pane and worktree,
+  and requires mutually disjoint normalized `write_set` paths.
+- Writer file calls load a dedicated guard that rejects absolute/parent paths, `.git`,
+  and existing symlink traversal. Writer argv contains no Bash, Git, subagent,
+  questionnaire, project context, skills, MCP, network tool, or ambient extension.
+- Builder Bash/edit/write are paused while a Writer wave can still change its automatic
+  integration base. Reviewer and workflow finish are blocked until the wave is
+  integrated or explicitly reconciled.
+- Per-run state writes are serialized and three-way merged, so a stale Orchestrator
+  update cannot erase a live Builder Writer wave; same-field conflicts fail closed.
+- Settled Writer panes are closed before filesystem capture. Missing panes are recorded
+  as frozen/aborted recovery evidence instead of leaving the run permanently locked.
+- The controller scans raw lane files, builds a temporary index with filters disabled,
+  captures hashed binary/full-index patches, validates actual paths, and dry-runs the
+  whole aggregate in another worktree before applying one combined patch to Builder.
 - Builder Bash blocks common destructive, history-changing, privilege, and publishing
   patterns.
 - Builder alone receives pinned Ponytail `full` guidance through a fixed adapter;
@@ -30,8 +46,8 @@ not a hard privilege boundary.
 - Nested calls disable project artifacts and automatic missions. Durable role
   sessions and asynchronous lifecycle state remain outside the target repository,
   which therefore receives no `.pi-subagents/` bookkeeping.
-- Automatic commits, pushes, merges, rebases, publication, deployment, worktree
-removal, and branch deletion are absent by design.
+- Automatic commits, pushes, merges, rebases, publication, deployment, Writer worktree
+  removal, and branch deletion are absent by design.
 
 `@juicesharp/rpiv-ask-user-question` is pinned to `2.4.0`. Its extension code runs
 with the Pi process's user permissions. It performs no model or network calls, reads
@@ -54,6 +70,12 @@ Tests and build tools can themselves modify files. Pi extensions execute with th
 user's permissions. For untrusted repositories or unattended execution, run the Pi
 role processes inside a container, VM, micro-VM, or OS policy sandbox with minimal
 mounts and credentials.
+
+Writer worktrees are Git isolation, not an operating-system privilege boundary. The
+no-shell tool set and path guard substantially reduce accidental escape, and rejected
+lane patches never enter Builder, but a same-user process plus filesystem TOCTOU cannot
+provide hostile-code containment. Writer lanes therefore target trusted repositories
+and attended workflows. Do not treat them as a sandbox for malicious prompts or files.
 
 Credentials, sessions, runtime state, worktrees, and local approvals must never be
 committed to this repository.

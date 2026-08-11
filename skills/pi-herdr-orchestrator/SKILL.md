@@ -1,6 +1,6 @@
 ---
 name: pi-herdr-orchestrator
-description: Route substantial coding work through a portable Pi-first Herdr workflow with a visible project Orchestrator workspace, separate Scout/Builder/Reviewer workspaces, isolated Git worktrees, independent review, and Pi subagent inspector panes. Use for long, multi-file, cross-cutting, risky, research-heavy, or multi-stage implementation tasks that benefit from planning, delegation, validation, and review. Do not use for quick questions, tiny edits, one-file mechanical changes, or tasks that do not justify creating workspaces and a worktree.
+description: Route substantial coding work through a portable Pi-first Herdr workflow with a visible project Orchestrator, separate Scout/Builder/Reviewer workspaces, optional guarded Writer panes in isolated Git worktrees, independent review, and read-only Pi subagent inspector panes. Use for long, multi-file, cross-cutting, risky, research-heavy, or multi-stage implementation tasks that benefit from planning, delegation, validation, and review. Do not use for quick questions, tiny edits, one-file mechanical changes, or tasks that do not justify creating workspaces and a worktree.
 ---
 
 # Pi Herdr Orchestrator

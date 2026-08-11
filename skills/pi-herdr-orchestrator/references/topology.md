@@ -8,7 +8,8 @@ the Orchestrator is the parent and the primary roles appear underneath it:
 <project> · orchestrator
 ├── <project> · scout      detached clean-base checkout
 │   └── automatic read-only inspector panes
-├── <project> · builder    task branch; the only writer
+├── <project> · builder    task branch; sole integrator
+│   ├── guarded Writer panes in separate detached worktrees
 │   └── automatic read-only inspector panes
 └── <project> · reviewer   verified snapshot of Builder's diff
     └── automatic read-only inspector panes
@@ -22,6 +23,13 @@ Pi subagents remain headless. Workflow roles must launch them through asynchrono
 `workflowScript`; an extension listens for the durable start event and opens a
 read-only Herdr inspector automatically. Closing an inspector does not stop its run.
 Use at most three simultaneous inspector panes per role.
+
+Writer panes are real Pi sessions, not inspectors. Builder may accept zero to three
+independent pre-mutation lanes with disjoint `write_set` paths. The controller splits
+one non-focused pane per lane, starts it in a separate detached worktree, and names it
+`subagent · <task label>`. Writers have guarded file tools but no Bash or delegation.
+After they settle, the controller validates and combines binary patches in a temporary
+integration worktree. Builder then owns semantic reconciliation and final validation.
 
 The Builder workspace owns the task worktree. Reviewer uses a separate detached
 checkout populated from Builder's tracked diff and non-ignored new files; the

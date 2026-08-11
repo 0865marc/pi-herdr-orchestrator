@@ -82,6 +82,24 @@ export async function openWorktreeWorkspace({ sourceWorkspaceId, cwd, label, env
   };
 }
 
+export async function splitPane({ paneId, cwd, direction = "right", env = {}, focus = false }, options = {}) {
+  const args = ["pane", "split", "--pane", paneId, "--direction", direction, "--cwd", cwd];
+  for (const [key, value] of Object.entries(env)) args.push("--env", `${key}=${value}`);
+  args.push(focus ? "--focus" : "--no-focus");
+  const response = await herdr(args, options);
+  const createdPaneId = response?.result?.pane?.pane_id;
+  if (!createdPaneId) throw new Error("Herdr pane split returned no pane id.");
+  return { response, paneId: createdPaneId };
+}
+
+export async function renamePane(paneId, label, options = {}) {
+  return herdr(["pane", "rename", paneId, label], options);
+}
+
+export async function closePane(paneId, options = {}) {
+  return herdr(["pane", "close", paneId], options);
+}
+
 export async function startPiAgent({ name, paneId, args, timeoutMs = 60_000 }, options = {}) {
   return herdr([
     "agent", "start", name,

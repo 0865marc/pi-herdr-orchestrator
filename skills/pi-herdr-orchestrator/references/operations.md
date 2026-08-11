@@ -37,11 +37,22 @@ No runtime state is written into this package. State defaults to:
 ```text
 ${XDG_STATE_HOME:-$HOME/.local/state}/pi-herdr-orchestrator/runs/
 ${XDG_DATA_HOME:-$HOME/.local/share}/pi-herdr-orchestrator/worktrees/
+${XDG_DATA_HOME:-$HOME/.local/share}/pi-herdr-orchestrator/writer-waves/
 ```
 
 Role sessions are stored beside workflow run state. Scout and Reviewer have detached
 role worktrees; Builder has the task-branch worktree. Authentication remains in the
 user's normal Pi configuration.
+
+Inside Builder, `pi_herdr_writers` owns `launch`, `status`, `wait`, `read`,
+`integrate`, `abort`, and `resolve`. A wave starts only from a clean Builder worktree
+and keeps its lane worktrees, hashed patches, and integration evidence under the
+Writer-wave XDG root. `resolve` records that Builder handled a failed wave
+sequentially; it never applies or deletes evidence.
+
+`abort` is the recovery path for a blocked, missing, or stale Writer. It closes only
+controller-owned panes, preserves their worktrees and artifacts, and requires manual
+reconciliation before Reviewer can start.
 
 ## Failure behavior
 

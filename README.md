@@ -11,7 +11,10 @@ primary role gets a visible Herdr workspace and an isolated Git checkout.
 
 - A persistent **Orchestrator** that investigates, plans, and coordinates the task.
 - A read-only **Scout** for independent discovery.
-- A **Builder** that is the only role allowed to change the task worktree.
+- A **Builder** that is the sole integrator and the only role allowed to change the
+  task worktree.
+- Optional no-shell **Writer** panes, each guarded inside its own detached worktree,
+  for genuinely independent pre-mutation implementation slices.
 - A read-only **Reviewer** that inspects a verified snapshot of Builder's exact diff.
 - Role-scoped Ponytail guidance for a lean Builder and a separate complexity review.
 - Structured decision dialogs that present concrete options while planning.
@@ -25,7 +28,8 @@ primary role gets a visible Herdr workspace and an isolated Git checkout.
 ├── <project> · scout
 │   └── subagent inspector panes
 ├── <project> · builder
-│   └── subagent inspector panes
+│   ├── isolated Writer panes
+│   └── read-only subagent inspector panes
 └── <project> · reviewer
     └── subagent inspector panes
 ```
@@ -100,17 +104,33 @@ Orchestrator instead of creating a duplicate.
 ## Adaptive parallelism
 
 The Orchestrator uses the approved plan and role handoffs to propose concrete
-`Parallel support candidates` for Builder and `Parallel review candidates` for
-Reviewer. Each candidate names an independent scope, question, expected evidence,
-and short display label. Generic fixed lanes are not imposed.
+`Parallel implementation candidates`, `Parallel support candidates`, and
+`Parallel review candidates`. Generic fixed lanes are not imposed.
 
-Builder checks the proposal against the repository; Reviewer checks it against the
-complete real diff. Either role may merge, replace, add, or reject candidates and may
-launch anywhere from zero to the configured limit. Selected children remain
-read-only—Builder is still the sole writer—and run asynchronously while the parent
-continues its own work.
+Builder checks writable and support proposals against the repository; Reviewer checks
+review proposals against the complete real diff. Either role may merge, replace, add,
+or reject candidates and may launch anywhere from zero to the configured limit.
 
-Every child in a parallel workflow gets its own pane inside the owning role workspace,
+Writable candidates additionally declare mutually disjoint `write_set` paths. Before
+Builder's first mutation, the controller can create one detached worktree and one
+task-labelled Pi pane per accepted lane. Those Writers have only guarded read/edit/
+write/search tools—no Bash, Git, delegation, skills, network tools, or ambient
+extensions. Builder remains read-only until every lane settles. The controller then:
+
+1. captures raw filesystem changes through a temporary Git index without executing
+   repository filters;
+2. rejects out-of-scope paths, drift, overlap, tampering, oversized deltas, and
+   unsupported Git links;
+3. emits hashed binary/full-index patches;
+4. applies all patches first in a temporary integration worktree; and
+5. applies one verified combined patch to Builder's task worktree.
+
+Builder inspects and semantically reconciles the aggregate, completes sequential work,
+and runs whole-task validation. Dirty correction rounds remain sequential or use
+read-only support lanes. A failed wave never auto-merges or auto-resolves conflicts;
+its evidence and worktrees remain available for explicit reconciliation.
+
+Every read-only child in a parallel workflow gets its own inspector pane inside the owning role workspace,
 named from the task label, for example `subagent · course migration`. The default
 limit is three panes per primary role. Completed panes remain visible until the next
 fan-out starts, when they are replaced by the new task-labelled views.
@@ -194,10 +214,13 @@ installation:
 ```text
 ${XDG_STATE_HOME:-$HOME/.local/state}/pi-herdr-orchestrator/runs/
 ${XDG_DATA_HOME:-$HOME/.local/share}/pi-herdr-orchestrator/worktrees/
+${XDG_DATA_HOME:-$HOME/.local/share}/pi-herdr-orchestrator/writer-waves/
 ```
 
-Only Builder receives write-capable tools for the task checkout. Scout, Reviewer,
-and packaged subagents are restricted to read/search tools. Reviewer gets a detached
+Only Builder receives write-capable tools for the task checkout. Isolated Writers can
+edit only their separate guarded worktrees, and controller validation is authoritative
+over their declared `write_set`. Scout, Reviewer, and packaged `pi-subagents` children
+remain restricted to read/search tools. Reviewer gets a detached
 checkout populated from Builder's tracked diff and non-ignored new files; the
 controller verifies the diff and file fingerprints before every review.
 
@@ -211,7 +234,9 @@ join this workflow. See the separate
 [Context Mode security design](docs/context-mode-security-design.md) for the proposed
 tool matrix, isolation model, rollout, and acceptance gates.
 
-Pi does not provide an operating-system sandbox. Read the
+The Writer guard rejects absolute paths, parent traversal, `.git`, and existing
+symlink traversal, but Pi does not provide an operating-system sandbox and same-user
+filesystem checks cannot eliminate every TOCTOU risk. Read the
 [security notes](docs/security.md) before running untrusted code or unattended tasks.
 
 ## Update
@@ -235,8 +260,8 @@ npm run check
 ```
 
 The suite checks extension imports and syntax, path portability, skill metadata,
-policy behavior, Git snapshot fidelity, subagent restrictions, inspector panes, and
-both Orchestrator launch modes.
+policy behavior, Git snapshot fidelity, binary Writer patch round-trips, path and
+write-set restrictions, inspector panes, and both Orchestrator launch modes.
 
 Further reading:
 

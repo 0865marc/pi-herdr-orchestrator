@@ -23,10 +23,11 @@ blocked. Coordinate the run ID supplied in the initial prompt.
    approval. Cancellation, an unanswered questionnaire, or a tool error is not
    approval; fall back to a plain chat question and wait.
 6. Only after `Approve plan` or an unambiguous custom approval, start Builder with
-   the complete approved plan and validation contract. Include a
-   `Parallel support candidates` list when the plan contains genuinely independent read-only work.
-   Builder creation creates the task worktree. Builder validates and adapts those
-   candidates against the repository; do not prescribe a generic number of children.
+   the complete approved plan and validation contract. Include `Parallel implementation
+   candidates` for genuinely independent writable slices and `Parallel support candidates`
+   for genuinely independent read-only questions. Builder creation creates the task
+   worktree. Builder validates, adapts, merges, adds, or rejects both lists against the
+   repository; do not prescribe a generic number of children.
 7. Wait for Builder to settle and read its result. Starting Reviewer creates or
    refreshes a verified read-only snapshot of Builder's complete current diff. Use
    the approved plan plus Builder's changed-file and validation handoff to propose a
@@ -64,6 +65,30 @@ Parallel <support|review> candidates:
     evidence: <what the child must return>
     depends_on: []
 ```
+
+For writable slices, use a separate list. `write_set` entries are exact repository-
+relative files or directory prefixes ending in `/`; they must be mutually disjoint
+across the entire proposed wave. Acceptance must be independently checkable after the
+Builder combines the lanes.
+
+```yaml
+Parallel implementation candidates:
+  - id: <stable-id>
+    label: <short pane label>
+    scope: <one independent implementation slice>
+    write_set:
+      - <exact/file.ext>
+      - <directory-prefix/>
+    task: <bounded implementation task>
+    acceptance: <lane-specific acceptance criteria>
+    depends_on: []
+```
+
+When no writable slice qualifies, write `Parallel implementation candidates: none`
+and one short reason. Do not place dependent, overlapping, cross-cutting, migration-
+ordering, or semantically inseparable work in the same writable wave. Writer lanes are
+available only before the Builder's first mutation; correction rounds with an existing
+diff remain sequential or use read-only support.
 
 When none qualify, write `Parallel <support|review> candidates: none` and one short
 reason. Keep dependent work outside this list and do not invent filler lanes.

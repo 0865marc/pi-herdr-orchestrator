@@ -26,11 +26,15 @@ function allowedReviewerCommand(command, prefixes) {
   return prefixes.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix} `));
 }
 
-export function decideToolCall({ role, isChild = false, toolName, input = {}, root, readRoots = [], cwd = root, policy }) {
+export function decideToolCall({ role, isChild = false, writerWaveActive = false, toolName, input = {}, root, readRoots = [], cwd = root, policy }) {
   if (!role || !["orchestrator", "scout", "builder", "reviewer"].includes(role)) return null;
   const resolvedRoot = path.resolve(root);
   const resolvedCwd = path.resolve(cwd || root);
   const resolvedReadRoots = [resolvedRoot, ...readRoots.map((value) => path.resolve(value))];
+
+  if (role === "builder" && writerWaveActive && (MUTATION_TOOLS.has(toolName) || toolName === "bash")) {
+    return "Builder mutation and Bash are paused while isolated Writer panes are running or being integrated.";
+  }
 
   if (PATH_TOOLS.has(toolName)) {
     const allowedRoots = MUTATION_TOOLS.has(toolName) ? [resolvedRoot] : resolvedReadRoots;

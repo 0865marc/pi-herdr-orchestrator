@@ -43,6 +43,13 @@ export function agentName(project, role, runId) {
   return name;
 }
 
+export function writerAgentName(project, runId, laneId) {
+  const suffix = shortHash(`${runId}:${laneId}`, 7);
+  const maxProject = Math.max(1, 32 - suffix.length - 4);
+  const prefix = slugify(project).slice(0, maxProject).replace(/-+$/g, "") || "p";
+  return `${prefix}-w-${suffix}`;
+}
+
 export function defaultTaskBranch(task, runId) {
   const taskSlug = slugify(task, "task").slice(0, 36).replace(/-+$/g, "") || "task";
   return `workflow/${taskSlug}-${shortHash(runId, 6)}`;

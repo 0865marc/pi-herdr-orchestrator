@@ -27,9 +27,23 @@ test("Builder and Reviewer adapt Orchestrator candidates before optional async f
 
 test("Orchestrator proposes task-specific lanes without making delegation mandatory", async () => {
   const prompt = await rolePrompt("orchestrator");
+  assert.match(prompt, /Parallel implementation candidates/u);
+  assert.match(prompt, /write_set/u);
   assert.match(prompt, /Parallel support candidates/u);
   assert.match(prompt, /Parallel review candidates/u);
   assert.match(prompt, /stable ID, short display label, exact scope, one question, expected evidence/u);
   assert.match(prompt, /absence of delegation is not itself a failure/u);
   assert.doesNotMatch(prompt, /generic number of children.*require parallel/su);
+});
+
+test("Builder owns adaptive isolated Writer integration and sequential fallback", async () => {
+  const prompt = await rolePrompt("builder");
+  assert.match(prompt, /Parallel implementation candidates/u);
+  assert.match(prompt, /pi_herdr_writers/u);
+  assert.match(prompt, /action:"launch"/u);
+  assert.match(prompt, /action:"integrate"/u);
+  assert.match(prompt, /mutually disjoint exact `write_set` paths/u);
+  assert.match(prompt, /pre-mutation only/u);
+  assert.match(prompt, /one non-focused sibling Herdr pane per/u);
+  assert.match(prompt, /never create filler lanes/u);
 });

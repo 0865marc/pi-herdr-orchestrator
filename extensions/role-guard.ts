@@ -5,6 +5,8 @@ import {
 } from "pi-subagents/capability-ceiling";
 import { PACKAGE_ROOT, loadConfig } from "../src/config.mjs";
 import { decideToolCall } from "../src/policy.mjs";
+import { readState } from "../src/state.mjs";
+import { writerWaveIsActive } from "../src/writer-wave.mjs";
 import autoInspectors from "./auto-inspectors.ts";
 
 const READ_ONLY_SUBAGENTS = [
@@ -50,9 +52,21 @@ export default function roleGuard(pi: ExtensionAPI) {
   };
 
   pi.on("tool_call", async (event, ctx) => {
+    let activeWriterWave = false;
+    if (role === "builder" && ["bash", "edit", "write"].includes(event.toolName)) {
+      const runId = process.env.PI_HERDR_ORCHESTRATOR_RUN_ID;
+      if (runId) {
+        try {
+          activeWriterWave = writerWaveIsActive(await readState(runId));
+        } catch {
+          activeWriterWave = true;
+        }
+      }
+    }
     const reason = decideToolCall({
       role,
       isChild: process.env.PI_SUBAGENT_CHILD === "1",
+      writerWaveActive: activeWriterWave,
       toolName: event.toolName,
       input: event.input as Record<string, unknown>,
       root,

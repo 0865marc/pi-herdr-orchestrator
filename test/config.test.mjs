@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { loadConfig, packageResources, PACKAGE_ROOT, resolveLaunchMode, roleArgs } from "../src/config.mjs";
+import { loadConfig, packageResources, PACKAGE_ROOT, resolveLaunchMode, roleArgs, writerArgs } from "../src/config.mjs";
 
 test("configuration supports machine-local provider and model overrides", async () => {
   const config = await loadConfig(PACKAGE_ROOT, {
@@ -56,6 +56,7 @@ test("role arguments resolve package resources without a fixed home directory", 
   assert.ok(!builderArgs.includes(path.join(PACKAGE_ROOT, "extensions", "ask-user-question.ts")));
   assert.ok(!config.roles.builder.tools.includes("ask_user_question"));
   assert.ok(builderArgs.includes(ponytailBuilder));
+  assert.ok(builderArgs.includes(path.join(PACKAGE_ROOT, "extensions", "builder-writers.ts")));
   assert.ok(!builderArgs.includes(ponytailReview));
   assert.ok(reviewerArgs.includes(ponytailReview));
   assert.ok(!reviewerArgs.includes(ponytailBuilder));
@@ -63,6 +64,12 @@ test("role arguments resolve package resources without a fixed home directory", 
   assert.ok(!args.includes(ponytailReview));
   assert.ok(!scoutArgs.includes(ponytailBuilder));
   assert.ok(!scoutArgs.includes(ponytailReview));
+  const isolatedWriterArgs = writerArgs({ agentName: "fixture-writer", config, sessionDir: "/tmp/pi-herdr-writer-session" });
+  assert.ok(isolatedWriterArgs.includes(path.join(PACKAGE_ROOT, "extensions", "writer-guard.ts")));
+  assert.ok(!isolatedWriterArgs.some((value) => value.includes("pi-subagents")));
+  assert.ok(!isolatedWriterArgs.includes("bash"));
+  assert.ok(!isolatedWriterArgs.includes("subagent"));
+  assert.ok(isolatedWriterArgs.includes("--no-context-files"));
   assert.ok(args.includes("--no-context-files"));
   assert.ok(args.includes("--no-approve"));
   assert.ok(!args.some((value) => value.includes("~") || value.includes("${HOME}")));

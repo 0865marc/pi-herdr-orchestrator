@@ -42,4 +42,7 @@ test("builder blocks publication and nested writers", () => {
   assert.match(decideToolCall({ role: "builder", toolName: "bash", input: { command: "git push origin HEAD" }, root: "/repo", policy }), /denied/u);
   assert.match(decideToolCall({ role: "builder", isChild: true, toolName: "edit", input: { path: "src/x.ts" }, root: "/repo", policy }), /single writer/u);
   assert.equal(decideToolCall({ role: "builder", toolName: "edit", input: { path: "src/x.ts" }, root: "/repo", policy }), null);
+  assert.match(decideToolCall({ role: "builder", writerWaveActive: true, toolName: "edit", input: { path: "src/x.ts" }, root: "/repo", policy }), /paused/u);
+  assert.match(decideToolCall({ role: "builder", writerWaveActive: true, toolName: "bash", input: { command: "npm test" }, root: "/repo", policy }), /paused/u);
+  assert.equal(decideToolCall({ role: "builder", writerWaveActive: true, toolName: "read", input: { path: "src/x.ts" }, root: "/repo", policy }), null);
 });

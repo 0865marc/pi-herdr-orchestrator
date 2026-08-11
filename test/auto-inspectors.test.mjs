@@ -5,6 +5,15 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import autoInspectors from "../extensions/auto-inspectors.ts";
 
+async function waitFor(predicate, timeoutMs = 2_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await predicate()) return;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  throw new Error("Timed out waiting for asynchronous inspector work.");
+}
+
 test("parallel async subagents each open a child-specific non-focused Herdr inspector", async () => {
   const asyncDir = await mkdtemp(path.join(tmpdir(), "herdr-auto-inspector-"));
   const eventHandlers = new Map();
@@ -61,9 +70,7 @@ test("parallel async subagents each open a child-specific non-focused Herdr insp
         }],
       },
     });
-    for (let attempt = 0; attempt < 50 && calls.length < 9; attempt += 1) {
-      await new Promise((resolve) => setImmediate(resolve));
-    }
+    await waitFor(() => calls.length >= 9);
     assert.deepEqual(calls.map((args) => args.slice(0, 2)), [
       ["pane", "split"], ["pane", "run"], ["pane", "rename"],
       ["pane", "split"], ["pane", "run"], ["pane", "rename"],
@@ -80,11 +87,15 @@ test("parallel async subagents each open a child-specific non-focused Herdr insp
     );
     const bindingFile = path.join(asyncDir, "inspectors", "herdr.json");
     let binding;
-    for (let attempt = 0; attempt < 50; attempt += 1) {
-      binding = JSON.parse(await readFile(bindingFile, "utf8"));
-      if (binding.panes?.length === 3) break;
-      await new Promise((resolve) => setImmediate(resolve));
-    }
+    await waitFor(async () => {
+      try {
+        binding = JSON.parse(await readFile(bindingFile, "utf8"));
+        return binding.panes?.length === 3;
+      } catch (error) {
+        if (error?.code === "ENOENT") return false;
+        throw error;
+      }
+    });
     assert.equal(binding.runId, "run-12345678");
     assert.equal(binding.schemaVersion, 2);
     assert.deepEqual(binding.panes.map((pane) => pane.paneId), ["w-role:p2", "w-role:p3", "w-role:p4"]);
@@ -107,9 +118,7 @@ test("parallel async subagents each open a child-specific non-focused Herdr insp
         }],
       },
     });
-    for (let attempt = 0; attempt < 50 && calls.length < 15; attempt += 1) {
-      await new Promise((resolve) => setImmediate(resolve));
-    }
+    await waitFor(() => calls.length >= 15);
     assert.deepEqual(calls.slice(9, 15).map((args) => args.slice(0, 2)), [
       ["pane", "close"], ["pane", "close"], ["pane", "close"],
       ["pane", "split"], ["pane", "run"], ["pane", "rename"],
@@ -124,9 +133,7 @@ test("parallel async subagents each open a child-specific non-focused Herdr insp
       cwd: "/repo",
       agent: "pi-herdr-orchestrator.advisor",
     });
-    for (let attempt = 0; attempt < 50 && calls.length < 19; attempt += 1) {
-      await new Promise((resolve) => setImmediate(resolve));
-    }
+    await waitFor(() => calls.length >= 19);
     assert.deepEqual(calls.slice(15, 19).map((args) => args.slice(0, 2)), [
       ["pane", "close"], ["pane", "split"], ["pane", "run"], ["pane", "rename"],
     ]);
