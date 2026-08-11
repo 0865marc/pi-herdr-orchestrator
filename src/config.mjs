@@ -35,6 +35,8 @@ export function packageResources(root = PACKAGE_ROOT) {
     workflowExtension: path.join(root, "extensions", "pi-herdr-orchestrator.ts"),
     guardExtension: path.join(root, "extensions", "role-guard.ts"),
     autoInspectorsExtension: path.join(root, "extensions", "auto-inspectors.ts"),
+    askUserQuestionExtension: path.join(root, "extensions", "ask-user-question.ts"),
+    askUserQuestionPackage: path.join(root, "node_modules", "@juicesharp", "rpiv-ask-user-question", "index.ts"),
     subagentsExtension: path.join(root, "node_modules", "pi-subagents", "index.ts"),
     subagentsSkill: path.join(root, "node_modules", "pi-subagents", "skills", "pi-subagents"),
   };
@@ -63,7 +65,12 @@ export function roleArgs({ role, agentName, root = PACKAGE_ROOT, config, session
     "--no-extensions",
     "--extension", resources.guardExtension,
   ];
-  if (role === "orchestrator") args.push("--extension", resources.workflowExtension);
+  if (role === "orchestrator") {
+    args.push(
+      "--extension", resources.workflowExtension,
+      "--extension", resources.askUserQuestionExtension,
+    );
+  }
   args.push(
     "--extension", resources.subagentsExtension,
     "--extension", resources.autoInspectorsExtension,

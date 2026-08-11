@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
-import { loadConfig, PACKAGE_ROOT, resolveLaunchMode, roleArgs } from "../src/config.mjs";
+import { loadConfig, packageResources, PACKAGE_ROOT, resolveLaunchMode, roleArgs } from "../src/config.mjs";
 
 test("configuration supports machine-local provider and model overrides", async () => {
   const config = await loadConfig(PACKAGE_ROOT, {
@@ -32,7 +32,16 @@ test("role arguments resolve package resources without a fixed home directory", 
   assert.ok(args.includes(path.join(PACKAGE_ROOT, "extensions", "pi-herdr-orchestrator.ts")));
   assert.ok(args.includes(path.join(PACKAGE_ROOT, "extensions", "role-guard.ts")));
   assert.ok(args.includes(path.join(PACKAGE_ROOT, "extensions", "auto-inspectors.ts")));
+  assert.ok(args.includes(path.join(PACKAGE_ROOT, "extensions", "ask-user-question.ts")));
+  assert.equal(
+    packageResources().askUserQuestionPackage,
+    path.join(PACKAGE_ROOT, "node_modules", "@juicesharp", "rpiv-ask-user-question", "index.ts"),
+  );
   assert.ok(args.includes(path.join(PACKAGE_ROOT, "node_modules", "pi-subagents", "index.ts")));
+  assert.ok(config.roles.orchestrator.tools.includes("ask_user_question"));
+  const builderArgs = roleArgs({ role: "builder", agentName: "fixture-builder", config });
+  assert.ok(!builderArgs.includes(path.join(PACKAGE_ROOT, "extensions", "ask-user-question.ts")));
+  assert.ok(!config.roles.builder.tools.includes("ask_user_question"));
   assert.ok(args.includes("--no-context-files"));
   assert.ok(args.includes("--no-approve"));
   assert.ok(!args.some((value) => value.includes("~") || value.includes("${HOME}")));

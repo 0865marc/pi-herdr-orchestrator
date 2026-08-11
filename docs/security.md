@@ -13,6 +13,8 @@ not a hard privilege boundary.
 - Read-only access to this package is allowed so roles can load bundled skill
   references; writes remain confined to the assigned role root.
 - Orchestrator and Scout cannot use general Bash or mutation tools.
+- Only normal Pi and the Orchestrator load `ask_user_question`; role policy never
+  treats a cancelled, unanswered, or failed questionnaire as approval.
 - Reviewer cannot write and Bash is limited to configured read-only/test prefixes.
 - A `pi-subagents` capability ceiling restricts all nested agents to three packaged
   read-only definitions, four read/search tools, no extra extensions, and no further
@@ -26,7 +28,12 @@ not a hard privilege boundary.
   sessions and asynchronous lifecycle state remain outside the target repository,
   which therefore receives no `.pi-subagents/` bookkeeping.
 - Automatic commits, pushes, merges, rebases, publication, deployment, worktree
-  removal, and branch deletion are absent by design.
+removal, and branch deletion are absent by design.
+
+`@juicesharp/rpiv-ask-user-question` is pinned to `2.4.0`. Its extension code runs
+with the Pi process's user permissions. It performs no model or network calls, reads
+optional XDG configuration, and may launch the configured external editor only after
+an explicit `Ctrl+G` action in its custom-answer editor.
 
 ## Not a hard boundary
 

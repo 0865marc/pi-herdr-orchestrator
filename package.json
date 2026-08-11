@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs",
-    "check:syntax": "node --experimental-strip-types --check extensions/pi-herdr-orchestrator.ts && node --experimental-strip-types --check extensions/role-guard.ts && node --experimental-strip-types --check extensions/auto-inspectors.ts && node --check bin/pi-herdr-orchestrator.mjs && node scripts/check-imports.mjs",
+    "check:syntax": "node --experimental-strip-types --check extensions/pi-herdr-orchestrator.ts && node --experimental-strip-types --check extensions/role-guard.ts && node --experimental-strip-types --check extensions/auto-inspectors.ts && node --experimental-strip-types --check extensions/ask-user-question.ts && node --check bin/pi-herdr-orchestrator.mjs && node scripts/check-imports.mjs",
     "check:portable": "node scripts/check-portability.mjs",
     "check:skill": "node scripts/validate-skill.mjs skills/pi-herdr-orchestrator",
     "check": "npm run check:syntax && npm run check:portable && npm run check:skill && npm test"
@@ -38,7 +38,8 @@
     "extensions": [
       "./extensions/pi-herdr-orchestrator.ts",
       "./extensions/role-guard.ts",
-      "./extensions/auto-inspectors.ts"
+      "./extensions/auto-inspectors.ts",
+      "./extensions/ask-user-question.ts"
     ],
     "skills": [
       "./skills"
@@ -50,6 +51,7 @@
     }
   },
   "dependencies": {
+    "@juicesharp/rpiv-ask-user-question": "2.4.0",
     "jiti": "2.7.0",
     "pi-subagents": "0.45.2",
     "typebox": "1.1.38"

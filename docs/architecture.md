@@ -6,6 +6,8 @@
 - `pi_herdr_orchestrator` is the deterministic Pi tool for primary workspace lifecycle.
 - `role-guard` applies role-aware path and tool policy inside workflow sessions.
 - `auto-inspectors` turns every async child-run event into a visible Herdr pane.
+- `ask-user-question` wraps the pinned questionnaire extension for user-owned
+  planning decisions and explicit plan approval.
 - `pi-subagents` supplies nested delegation, missions, FleetView, and Herdr inspector
   panes.
 - Packaged `pi-herdr-orchestrator.*` subagents provide bounded read-only child roles.
@@ -19,7 +21,8 @@ normal Pi + skill
   -> user approves workflow creation
   -> current Pi becomes <project> · orchestrator, or isolated fallback is created
   -> optional child <project> · scout + detached base worktree
-  -> plan + explicit implementation approval
+  -> grouped user-owned decisions + concrete options
+  -> plan + structured explicit implementation approval
   -> <project> · builder + linked task worktree
   -> child <project> · reviewer + verified Builder snapshot worktree
   -> same Builder correction when required
@@ -45,6 +48,10 @@ The role guard registers a session-scoped `pi-subagents` capability ceiling. Onl
 the three packaged child agents may launch; their effective tools are intersected
 with `read`, `grep`, `find`, and `ls`, extensions are denied, and nesting depth is
 zero. This enforcement does not depend on a child inheriting the parent extension.
+
+The questionnaire extension loads in normal Pi so `adopt-current` can activate it
+without replacing the process. Isolated Orchestrators load the same local wrapper
+explicitly. Scout, Builder, Reviewer, and nested subagents never receive the tool.
 
 ## Portability boundary
 

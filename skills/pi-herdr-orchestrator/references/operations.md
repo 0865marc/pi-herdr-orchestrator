@@ -4,6 +4,7 @@
 
 - `pi`, `herdr`, `git`, and Node.js are available.
 - Package dependencies were installed by Pi or `npm install`.
+- `ask_user_question` is available in the interactive caller and Orchestrator.
 - The caller is inside Herdr.
 - The base repository is clean and on a branch.
 - Provider authentication exists in the host Pi configuration; credentials are not

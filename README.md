@@ -13,6 +13,7 @@ primary role gets a visible Herdr workspace and an isolated Git checkout.
 - A read-only **Scout** for independent discovery.
 - A **Builder** that is the only role allowed to change the task worktree.
 - A read-only **Reviewer** that inspects a verified snapshot of Builder's exact diff.
+- Structured decision dialogs that present concrete options while planning.
 - Automatic Herdr inspector panes for bounded `pi-subagents` delegations.
 - Two approval boundaries: one to start discovery and another before implementation.
 - No automatic commits, pushes, merges, rebases, deployments, branch deletion, or
@@ -95,6 +96,27 @@ plan and asks again before starting Builder or creating the writable task worktr
 Startup is idempotent: if the same workflow is already live, Pi points you to its
 Orchestrator instead of creating a duplicate.
 
+## Interactive planning
+
+The package includes
+[`@juicesharp/rpiv-ask-user-question`](https://pi.dev/packages/@juicesharp/rpiv-ask-user-question)
+for decisions that genuinely belong to you. Instead of silently choosing an
+architecture, compatibility strategy, migration scope, or risk trade-off, the
+Orchestrator groups up to four related questions into one terminal dialog and shows
+2–4 explained options for each.
+
+The recommended option appears first, but every question also accepts a custom
+answer or an attached note. The Orchestrator uses a final questionnaire with these
+choices before Builder starts:
+
+- **Approve plan (Recommended)** — implement the plan as presented.
+- **Request changes** — revise it and request approval again.
+- **Stop workflow** — do not create the writable worktree.
+
+Use arrow keys and `Enter` to select, `Tab` to move between questions, `n` to attach
+a note, or `Esc` to cancel. A cancellation or UI failure never counts as approval;
+the Orchestrator falls back to a plain chat question and waits.
+
 ## Orchestrator launch modes
 
 Choose the launch mode in [`config/workflow.json`](config/workflow.json):
@@ -143,6 +165,10 @@ Only Builder receives write-capable tools for the task checkout. Scout, Reviewer
 and packaged subagents are restricted to read/search tools. Reviewer gets a detached
 checkout populated from Builder's tracked diff and non-ignored new files; the
 controller verifies the diff and file fingerprints before every review.
+
+The questionnaire extension is pinned to version `2.4.0`. It makes no model or
+network calls of its own. It reads optional user configuration and launches Pi's
+configured external editor only when you explicitly request that from the dialog.
 
 Pi does not provide an operating-system sandbox. Read the
 [security notes](docs/security.md) before running untrusted code or unattended tasks.

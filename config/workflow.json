@@ -15,6 +15,7 @@
         "grep",
         "find",
         "ls",
+        "ask_user_question",
         "pi_herdr_orchestrator",
         "subagent",
         "subagent_wait"

@@ -23,6 +23,7 @@ test("read-only package references are allowed without widening write roots", ()
 
 test("workflow roles cannot recurse or hide foreground subagents", () => {
   assert.match(decideToolCall({ role: "orchestrator", toolName: "pi_herdr_orchestrator", input: { action: "start" }, root: "/repo", policy }), /already running/u);
+  assert.equal(decideToolCall({ role: "orchestrator", toolName: "ask_user_question", input: { questions: [] }, root: "/repo", policy }), null);
   assert.match(decideToolCall({ role: "scout", toolName: "subagent", input: { agent: "pi-herdr-orchestrator.scout" }, root: "/repo", policy }), /workflowScript/u);
   assert.match(decideToolCall({ role: "scout", toolName: "subagent", input: { workflowScript: "return runs.run('x', input)", async: false }, root: "/repo", policy }), /asynchronously/u);
   assert.match(decideToolCall({ role: "scout", toolName: "subagent", input: { workflowScript: "return runs.run('x', input)" }, root: "/repo", policy }), /artifacts:false/u);

@@ -19,8 +19,12 @@ workspace, process, or Git orchestration with ad-hoc shell commands.
 5. Read `orchestratorLaunchMode` from doctor. Explain that `adopt-current` promotes
    this same conversation/workspace, while `isolated` creates a new
    `<project> · orchestrator` workspace. Neither mode authorizes implementation.
-6. Ask for explicit approval before creating or adopting the workflow.
-7. Only after approval, call `pi_herdr_orchestrator` with:
+6. Call `ask_user_question` for explicit approval before creating or adopting the
+   workflow. Offer `Start workflow (Recommended)` and `Stay in this chat`, with clear
+   descriptions of the workspace effect. If the questionnaire is unavailable or
+   cancelled, ask in plain chat and wait. Do not infer approval.
+7. Only after `Start workflow` or an unambiguous custom approval, call
+   `pi_herdr_orchestrator` with:
 
 ```json
 {
