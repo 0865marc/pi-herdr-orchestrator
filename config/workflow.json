@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "provider": "openai-codex",
+  "orchestratorLaunchMode": "isolated",
+  "workspaceSeparator": " · ",
+  "agentStartTimeoutMs": 60000,
+  "agentTurnTimeoutMs": 1200000,
+  "loadContextFiles": false,
+  "roles": {
+    "orchestrator": {
+      "model": "gpt-5.6-sol",
+      "thinking": "max",
+      "tools": [
+        "read",
+        "grep",
+        "find",
+        "ls",
+        "herdr_workflow",
+        "subagent",
+        "subagent_wait"
+      ]
+    },
+    "scout": {
+      "model": "gpt-5.6-luna",
+      "thinking": "high",
+      "tools": [
+        "read",
+        "grep",
+        "find",
+        "ls",
+        "subagent",
+        "subagent_wait"
+      ]
+    },
+    "builder": {
+      "model": "gpt-5.6-luna",
+      "thinking": "xhigh",
+      "tools": [
+        "read",
+        "bash",
+        "edit",
+        "write",
+        "grep",
+        "find",
+        "ls",
+        "subagent",
+        "subagent_wait"
+      ]
+    },
+    "reviewer": {
+      "model": "gpt-5.6-luna",
+      "thinking": "xhigh",
+      "tools": [
+        "read",
+        "bash",
+        "grep",
+        "find",
+        "ls",
+        "subagent",
+        "subagent_wait"
+      ]
+    }
+  },
+  "policy": {
+    "maxInspectorPanesPerRole": 3,
+    "builderDeniedPatterns": [
+      "(^|\\s)git\\s+(commit|push|merge|rebase|reset|clean|checkout|switch|branch\\s+(-d|-D)|worktree\\s+remove)(\\s|$)",
+      "(^|\\s)(sudo|su|doas)(\\s|$)",
+      "rm\\s+-[^\\n]*r[^\\n]*f|rm\\s+-[^\\n]*f[^\\n]*r",
+      "curl[^\\n|]*\\|\\s*(sh|bash)|wget[^\\n|]*\\|\\s*(sh|bash)"
+    ],
+    "reviewerAllowedCommands": [
+      "git status",
+      "git diff",
+      "git show",
+      "git log",
+      "git rev-parse",
+      "git branch --show-current",
+      "npm test",
+      "npm run test",
+      "npm run lint",
+      "npm run typecheck",
+      "pnpm test",
+      "pnpm run test",
+      "pnpm lint",
+      "yarn test",
+      "bun test",
+      "pytest",
+      "python -m pytest",
+      "cargo test",
+      "go test",
+      "make test",
+      "just test"
+    ]
+  }
+}

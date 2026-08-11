@@ -1,0 +1,66 @@
+{
+  "name": "pi-herdr-orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi-first orchestration for visible Herdr role workspaces and safe subagent workflows",
+  "type": "module",
+  "bin": {
+    "pi-herdr-orchestrator": "./bin/herdr-workflow.mjs",
+    "herdr-workflow": "./bin/herdr-workflow.mjs"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.mjs",
+    "check:syntax": "node --experimental-strip-types --check extensions/herdr-workflow.ts && node --experimental-strip-types --check extensions/role-guard.ts && node --experimental-strip-types --check extensions/auto-inspectors.ts && node --check bin/herdr-workflow.mjs && node scripts/check-imports.mjs",
+    "check:portable": "node scripts/check-portability.mjs",
+    "check:skill": "node scripts/validate-skill.mjs skills/pi-herdr-orchestrator",
+    "check": "npm run check:syntax && npm run check:portable && npm run check:skill && npm test"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-coding-agent",
+    "herdr",
+    "orchestration",
+    "multi-agent",
+    "subagents",
+    "workflow"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/0865marc/pi-herdr-orchestrator.git"
+  },
+  "homepage": "https://github.com/0865marc/pi-herdr-orchestrator#readme",
+  "bugs": {
+    "url": "https://github.com/0865marc/pi-herdr-orchestrator/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/herdr-workflow.ts",
+      "./extensions/role-guard.ts",
+      "./extensions/auto-inspectors.ts"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "subagents": {
+      "agents": [
+        "./subagents"
+      ]
+    }
+  },
+  "dependencies": {
+    "jiti": "2.7.0",
+    "pi-subagents": "0.45.2",
+    "typebox": "1.1.38"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.84.1"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    }
+  }
+}

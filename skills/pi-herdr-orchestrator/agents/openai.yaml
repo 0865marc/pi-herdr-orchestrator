@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pi Herdr Orchestrator"
+  short_description: "Route long coding tasks through visible Pi roles"
+  default_prompt: "Use $pi-herdr-orchestrator to run this substantial coding task through visible Pi roles in Herdr."

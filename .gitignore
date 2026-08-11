@@ -1,0 +1,10 @@
+node_modules/
+coverage/
+*.log
+.DS_Store
+.env
+.env.*
+auth.json
+sessions/
+.herdr-workflow/
+.pi-subagents/
