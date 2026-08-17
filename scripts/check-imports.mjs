@@ -8,4 +8,5 @@ await jiti.import("../extensions/ask-user-question.ts");
 await jiti.import("../extensions/ponytail-builder.ts");
 await jiti.import("../extensions/builder-writers.ts");
 await jiti.import("../extensions/writer-guard.ts");
+await jiti.import("../extensions/role-appearance.ts");
 process.stdout.write("Extension imports passed.\n");

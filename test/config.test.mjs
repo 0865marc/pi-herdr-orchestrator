@@ -46,11 +46,16 @@ test("role arguments resolve package resources without a fixed home directory", 
     packageResources().ponytailReviewSkill,
     path.join(PACKAGE_ROOT, "node_modules", "@dietrichgebert", "ponytail", "skills", "ponytail-review"),
   );
+  assert.ok(args.includes(path.join(PACKAGE_ROOT, "extensions", "role-appearance.ts")));
   assert.ok(args.includes(path.join(PACKAGE_ROOT, "node_modules", "pi-subagents", "index.ts")));
   assert.ok(config.roles.orchestrator.tools.includes("ask_user_question"));
   const builderArgs = roleArgs({ role: "builder", agentName: "fixture-builder", config });
   const reviewerArgs = roleArgs({ role: "reviewer", agentName: "fixture-reviewer", config });
   const scoutArgs = roleArgs({ role: "scout", agentName: "fixture-scout", config });
+  const appearanceExtension = path.join(PACKAGE_ROOT, "extensions", "role-appearance.ts");
+  assert.ok(builderArgs.includes(appearanceExtension));
+  assert.ok(reviewerArgs.includes(appearanceExtension));
+  assert.ok(scoutArgs.includes(appearanceExtension));
   const ponytailBuilder = path.join(PACKAGE_ROOT, "extensions", "ponytail-builder.ts");
   const ponytailReview = path.join(PACKAGE_ROOT, "node_modules", "@dietrichgebert", "ponytail", "skills", "ponytail-review");
   assert.ok(!builderArgs.includes(path.join(PACKAGE_ROOT, "extensions", "ask-user-question.ts")));

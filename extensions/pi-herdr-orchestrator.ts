@@ -28,6 +28,7 @@ import { loadConfig, PACKAGE_ROOT, resolveLaunchMode } from "../src/config.mjs";
 import { agentGet, clearAgentName, renameAgent, renameWorkspace, workspaceGet } from "../src/herdr.mjs";
 import { decideToolCall } from "../src/policy.mjs";
 import { installAutoInspectors } from "./auto-inspectors.ts";
+import { applyRoleAppearance } from "./role-appearance.ts";
 
 const Action = Type.Union([
   Type.Literal("doctor"),
@@ -76,6 +77,8 @@ export default function piHerdrOrchestrator(pi: ExtensionAPI) {
     state: any;
     ceiling?: SubagentCapabilityCeilingHandle;
     disposeInspectors?: () => void;
+    disposeAppearance?: () => void;
+    restoration?: Promise<{ ok: boolean; errors: string[] }>;
     finishing?: boolean;
   };
 
@@ -145,6 +148,7 @@ export default function piHerdrOrchestrator(pi: ExtensionAPI) {
       }
     };
     if ("disposeInspectors" in runtime) runtime.disposeInspectors?.();
+    if ("disposeAppearance" in runtime) runtime.disposeAppearance?.();
     if ("ceiling" in runtime) runtime.ceiling?.dispose();
     await attempt("tools", () => pi.setActiveTools(original.tools));
     await attempt("thinking", () => pi.setThinkingLevel(original.thinking));
@@ -158,6 +162,12 @@ export default function piHerdrOrchestrator(pi: ExtensionAPI) {
     await attempt("workspace label", () => renameWorkspace(activation.workspaceId, original.workspaceLabel));
     restoreWorkflowEnvironment(original.environment);
     return { ok: errors.length === 0, errors };
+  }
+
+  function releaseActiveRuntime(runtime: ActiveRuntime) {
+    if (activeRuntime === runtime) activeRuntime = undefined;
+    runtime.restoration ??= restoreAdoptedRuntime(runtime);
+    return runtime.restoration;
   }
 
   async function activatePendingAdoption(ctx: any) {
@@ -176,20 +186,24 @@ export default function piHerdrOrchestrator(pi: ExtensionAPI) {
       pi.setActiveTools(activation.target.tools);
       pi.setSessionName(activation.target.sessionName);
       const storedState = await activateAdoptedWorkflow({ runId: pending.result.runId });
-      attachRuntimeControls(runtime, storedState);
+      attachRuntimeControls(runtime, storedState, ctx);
       pi.sendUserMessage(pending.result.initialPrompt);
     } catch (error) {
-      activeRuntime = undefined;
-      await restoreAdoptedRuntime(runtime);
+      await releaseActiveRuntime(runtime);
       await failAdoptedWorkflow({ runId: pending.result.runId, error });
       pi.sendUserMessage(`Workflow adoption failed and the original Pi runtime was restored. Error: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
-  function attachRuntimeControls(runtime: ActiveRuntime, storedState: any) {
+  function attachRuntimeControls(
+    runtime: ActiveRuntime,
+    storedState: { id: string; repository: { root: string } },
+    ctx: Parameters<typeof applyRoleAppearance>[0],
+  ) {
     const activation = runtime.result.activation;
     runtime.state = storedState;
     applyAdoptedEnvironment(storedState, runtime.config);
+    runtime.disposeAppearance = applyRoleAppearance(ctx);
     runtime.ceiling = registerSubagentCapabilityCeiling({
       sessionId: activation.sessionId,
       source: "pi-herdr-orchestrator:orchestrator",
@@ -240,19 +254,17 @@ export default function piHerdrOrchestrator(pi: ExtensionAPI) {
       pi.setThinkingLevel(activation.target.thinking);
       pi.setActiveTools(activation.target.tools);
       pi.setSessionName(activation.target.sessionName);
-      attachRuntimeControls(runtime, storedState);
+      attachRuntimeControls(runtime, storedState, ctx);
       if (runtime.finishing) await restoreFinishedAdoption(runtime);
     } catch (error) {
-      activeRuntime = undefined;
-      await restoreAdoptedRuntime(runtime);
+      await releaseActiveRuntime(runtime);
       await failAdoptedWorkflow({ runId: storedState.id, error });
       pi.sendUserMessage(`Workflow recovery failed and the original Pi runtime was restored. Error: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   async function restoreFinishedAdoption(runtime: ActiveRuntime) {
-    activeRuntime = undefined;
-    const restoration = await restoreAdoptedRuntime(runtime);
+    const restoration = await releaseActiveRuntime(runtime);
     await completeWorkflow({ runId: runtime.result.runId, restoration });
   }
 
@@ -268,6 +280,11 @@ export default function piHerdrOrchestrator(pi: ExtensionAPI) {
     if (!paneId || !sessionId) return;
     const storedState = await findAdoptedWorkflow({ sessionId, paneId });
     if (storedState) await rehydrateAdoptedRuntime(ctx, storedState);
+  });
+
+  pi.on("session_shutdown", async () => {
+    const runtime = activeRuntime;
+    if (runtime) await releaseActiveRuntime(runtime);
   });
 
   pi.on("tool_call", async (event, ctx) => {

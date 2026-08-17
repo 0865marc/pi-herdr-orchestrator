@@ -60,7 +60,7 @@ Adoption is allowed only when all of the following are true:
 - No other live workflow owns the same repository and exact task.
 - The repository passes the existing clean-snapshot preflight.
 - The configured Orchestrator model is available with credentials.
-- The workflow, guard, and subagent extensions are already loaded.
+- The workflow, guard, role-appearance, and subagent extensions are already loaded.
 
 If adoption is ineligible, return a precise reason. Fall back to `isolated` only when
 the user selected automatic fallback; never silently weaken policy.

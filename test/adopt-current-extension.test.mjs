@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { createJiti } from "jiti";
+import { readState } from "../src/state.mjs";
 
 const exec = promisify(execFile);
 const jiti = createJiti(import.meta.url);
@@ -55,6 +56,14 @@ writeFileSync(1, JSON.stringify(response));
   delete process.env.PI_HERDR_ORCHESTRATOR_ROLE;
   delete process.env.PI_HERDR_ORCHESTRATOR_RUN_ID;
 
+  const workflowEnvironmentBeforeAdoption = Object.fromEntries([
+    "PI_HERDR_ORCHESTRATOR_RUN_ID",
+    "PI_HERDR_ORCHESTRATOR_ROLE",
+    "PI_HERDR_ORCHESTRATOR_REPO_ROOT",
+    "PI_HERDR_ORCHESTRATOR_ROLE_ROOT",
+    "PI_HERDR_ORCHESTRATOR_PACKAGE_ROOT",
+    "PI_HERDR_ORCHESTRATOR_MAX_INSPECTOR_PANES",
+  ].map((key) => [key, process.env[key]]));
   const originalModel = { provider: "fixture", id: "normal" };
   const targetModel = { provider: "openai-codex", id: "gpt-5.6-sol" };
   let model = originalModel;
@@ -64,6 +73,20 @@ writeFileSync(1, JSON.stringify(response));
   let failTargetModel = false;
   const userMessages = [];
   const handlers = new Map();
+  const appearanceCalls = [];
+  const ui = {
+    theme: {
+      fg(color, text) {
+        return `${color}:${text}`;
+      },
+    },
+    setWidget(key, content, options) {
+      appearanceCalls.push({ method: "widget", key, content, options });
+    },
+    setStatus(key, text) {
+      appearanceCalls.push({ method: "status", key, text });
+    },
+  };
   const eventHandlers = new Map();
   let workflowTool;
   const pi = {
@@ -96,8 +119,16 @@ writeFileSync(1, JSON.stringify(response));
   };
   const ctx = {
     cwd: repository,
+    hasUI: true,
+    ui,
     model: originalModel,
-    modelRegistry: { find(provider, id) { return provider === targetModel.provider && id === targetModel.id ? targetModel : undefined; } },
+    modelRegistry: {
+      find(provider, id) {
+        if (provider === targetModel.provider && id === targetModel.id) return targetModel;
+        if (provider === originalModel.provider && id === originalModel.id) return originalModel;
+        return undefined;
+      },
+    },
     sessionManager: { getSessionId() { return "session-current"; } },
   };
 
@@ -121,7 +152,52 @@ writeFileSync(1, JSON.stringify(response));
     assert.equal(process.env.PI_HERDR_ORCHESTRATOR_ROLE, "orchestrator");
     assert.equal(process.env.PI_HERDR_ORCHESTRATOR_RUN_ID, started.details.runId);
     assert.equal(userMessages.length, 1);
+    assert.deepEqual(appearanceCalls, [
+      {
+        method: "widget",
+        key: "pi-herdr-orchestrator:role-appearance",
+        content: ["accent:[O] ORCHESTRATOR"],
+        options: { placement: "aboveEditor" },
+      },
+      { method: "status", key: "pi-herdr-orchestrator:role-appearance", text: "accent:[O] ORCHESTRATOR" },
+    ]);
     assert.match(userMessages[0], /already bootstrapped/u);
+
+    const shutdownHandlers = handlers.get("session_shutdown");
+    assert.ok(shutdownHandlers?.length);
+    for (const handler of shutdownHandlers ?? []) await handler({}, ctx);
+    assert.equal(model, originalModel);
+    assert.equal(thinking, "medium");
+    assert.deepEqual(tools, ["read", "bash", "edit", "write", "ask_user_question", "pi_herdr_orchestrator", "subagent", "subagent_wait", "grep", "find", "ls"]);
+    assert.equal(sessionName, "project session");
+    for (const [key, value] of Object.entries(workflowEnvironmentBeforeAdoption)) {
+      assert.equal(process.env[key], value, `${key} should be restored on shutdown`);
+    }
+    assert.deepEqual(appearanceCalls.slice(-2), [
+      { method: "widget", key: "pi-herdr-orchestrator:role-appearance", content: undefined, options: { placement: "aboveEditor" } },
+      { method: "status", key: "pi-herdr-orchestrator:role-appearance", text: undefined },
+    ]);
+    const cleanupCallCount = appearanceCalls.length;
+    for (const handler of shutdownHandlers ?? []) await handler({}, ctx);
+    assert.equal(appearanceCalls.length, cleanupCallCount);
+
+    const persistedAfterShutdown = await readState(started.details.runId);
+    assert.equal(persistedAfterShutdown.activation.status, "active");
+    assert.equal(persistedAfterShutdown.roles.orchestrator.status, "running");
+
+    const sessionStart = handlers.get("session_start")?.[0];
+    assert.equal(typeof sessionStart, "function");
+    await sessionStart({}, ctx);
+    assert.equal(model, targetModel);
+    assert.equal(thinking, "max");
+    assert.deepEqual(tools, ["read", "grep", "find", "ls", "ask_user_question", "pi_herdr_orchestrator", "subagent", "subagent_wait"]);
+    assert.equal(sessionName, `${path.basename(repository)} · orchestrator`);
+    assert.equal(process.env.PI_HERDR_ORCHESTRATOR_ROLE, "orchestrator");
+    assert.equal(process.env.PI_HERDR_ORCHESTRATOR_RUN_ID, started.details.runId);
+    assert.deepEqual(appearanceCalls.slice(-2), [
+      { method: "widget", key: "pi-herdr-orchestrator:role-appearance", content: ["accent:[O] ORCHESTRATOR"], options: { placement: "aboveEditor" } },
+      { method: "status", key: "pi-herdr-orchestrator:role-appearance", text: "accent:[O] ORCHESTRATOR" },
+    ]);
 
     const promptResult = await handlers.get("before_agent_start")[0]({ systemPrompt: "base prompt" }, ctx);
     assert.match(promptResult.systemPrompt, /base prompt/u);
@@ -137,17 +213,32 @@ writeFileSync(1, JSON.stringify(response));
     await handlers.get("agent_settled")[0]({}, ctx);
 
     assert.equal(model, originalModel);
+    assert.deepEqual(tools, ["read", "bash", "edit", "write", "ask_user_question", "pi_herdr_orchestrator", "subagent", "subagent_wait", "grep", "find", "ls"]);
     assert.equal(thinking, "medium");
     assert.equal(sessionName, "project session");
     assert.equal(process.env.PI_HERDR_ORCHESTRATOR_ROLE, undefined);
     assert.equal(process.env.PI_HERDR_ORCHESTRATOR_RUN_ID, undefined);
     const calls = (await readFile(herdrLog, "utf8")).trim().split("\n").map((line) => JSON.parse(line));
+    assert.deepEqual(appearanceCalls.slice(-2), [
+      {
+        method: "widget",
+        key: "pi-herdr-orchestrator:role-appearance",
+        content: undefined,
+        options: { placement: "aboveEditor" },
+      },
+      { method: "status", key: "pi-herdr-orchestrator:role-appearance", text: undefined },
+    ]);
     assert.equal(calls.some((args) => args[0] === "workspace" && args[1] === "create"), false);
     assert.equal(calls.some((args) => args[0] === "agent" && args[1] === "start"), false);
-    assert.deepEqual(calls.filter((args) => args[0] === "workspace" && args[1] === "rename").map((args) => args[3]), [`${path.basename(repository)} · orchestrator`, "project"]);
+    assert.deepEqual(calls.filter((args) => args[0] === "workspace" && args[1] === "rename").map((args) => args[3]), [
+      `${path.basename(repository)} · orchestrator`,
+      "project",
+      `${path.basename(repository)} · orchestrator`,
+      "project",
+    ]);
 
     failTargetModel = true;
-    const failed = await workflowTool.execute("call-failed-start", {
+    const failed = await workflowTool.execute("call-failed", {
       action: "start",
       repository,
       task: "Exercise adoption rollback",

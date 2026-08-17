@@ -1,6 +1,6 @@
 {
   "name": "pi-herdr-orchestrator",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Pi-first orchestration for visible Herdr role workspaces and safe subagent workflows",
   "type": "module",
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "node --experimental-strip-types --test --test-concurrency=4 test/*.test.mjs",
-    "check:syntax": "node --experimental-strip-types --check extensions/pi-herdr-orchestrator.ts && node --experimental-strip-types --check extensions/role-guard.ts && node --experimental-strip-types --check extensions/auto-inspectors.ts && node --experimental-strip-types --check extensions/ask-user-question.ts && node --experimental-strip-types --check extensions/ponytail-builder.ts && node --experimental-strip-types --check extensions/builder-writers.ts && node --experimental-strip-types --check extensions/writer-guard.ts && node --check src/writer-wave.mjs && node --check bin/pi-herdr-orchestrator.mjs && node scripts/check-imports.mjs",
+    "check:syntax": "node --experimental-strip-types --check extensions/pi-herdr-orchestrator.ts && node --experimental-strip-types --check extensions/role-guard.ts && node --experimental-strip-types --check extensions/role-appearance.ts && node --experimental-strip-types --check extensions/auto-inspectors.ts && node --experimental-strip-types --check extensions/ask-user-question.ts && node --experimental-strip-types --check extensions/ponytail-builder.ts && node --experimental-strip-types --check extensions/builder-writers.ts && node --experimental-strip-types --check extensions/writer-guard.ts && node --check src/writer-wave.mjs && node --check bin/pi-herdr-orchestrator.mjs && node scripts/check-imports.mjs",
     "check:portable": "node scripts/check-portability.mjs",
     "check:skill": "node scripts/validate-skill.mjs skills/pi-herdr-orchestrator",
     "check": "npm run check:syntax && npm run check:portable && npm run check:skill && npm test"
@@ -38,6 +38,7 @@
     "extensions": [
       "./extensions/pi-herdr-orchestrator.ts",
       "./extensions/role-guard.ts",
+      "./extensions/role-appearance.ts",
       "./extensions/auto-inspectors.ts",
       "./extensions/ask-user-question.ts"
     ],

@@ -34,6 +34,7 @@ export function packageResources(root = PACKAGE_ROOT) {
     root,
     workflowExtension: path.join(root, "extensions", "pi-herdr-orchestrator.ts"),
     guardExtension: path.join(root, "extensions", "role-guard.ts"),
+    appearanceExtension: path.join(root, "extensions", "role-appearance.ts"),
     autoInspectorsExtension: path.join(root, "extensions", "auto-inspectors.ts"),
     builderWritersExtension: path.join(root, "extensions", "builder-writers.ts"),
     writerGuardExtension: path.join(root, "extensions", "writer-guard.ts"),
@@ -69,6 +70,7 @@ export function roleArgs({ role, agentName, root = PACKAGE_ROOT, config, session
     "--tools", roleConfig.tools.join(","),
     "--no-extensions",
     "--extension", resources.guardExtension,
+    "--extension", resources.appearanceExtension,
   ];
   if (role === "orchestrator") {
     args.push(

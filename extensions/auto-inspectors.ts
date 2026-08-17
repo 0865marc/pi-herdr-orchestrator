@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { access, mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,40 +35,108 @@ function parseHerdr(result: { code?: number; stdout?: string; stderr?: string },
   }
 }
 
-async function bindingExists(file: string): Promise<boolean> {
-  try {
-    await access(file);
-    return true;
-  } catch {
-    return false;
-  }
+interface InspectorPane {
+  paneId: string;
+  agent?: string;
+  label?: string;
+  index?: number;
+  openedAt?: string;
+  command?: string;
 }
 
-async function bindingPaneIds(file: string): Promise<string[]> {
-  try {
-    const binding = JSON.parse(await readFile(file, "utf8"));
-    if (Array.isArray(binding.panes)) {
-      return binding.panes
-        .map((pane: unknown) => pane && typeof pane === "object" ? (pane as Record<string, unknown>).paneId : undefined)
-        .filter((paneId: unknown): paneId is string => typeof paneId === "string");
-    }
-    return typeof binding.paneId === "string" ? [binding.paneId] : [];
-  } catch {
-    return [];
-  }
+interface InspectorBinding {
+  schemaVersion: 1 | 2;
+  kind: "herdr-inspector" | "herdr-subagent-inspectors";
+  runId: string;
+  asyncDir: string;
+  panes: InspectorPane[];
 }
 
-async function writeBinding(file: string, binding: Record<string, unknown>): Promise<void> {
-  await mkdir(path.dirname(file), { recursive: true });
-  const temporary = `${file}.${process.pid}.tmp`;
-  await writeFile(temporary, `${JSON.stringify(binding, null, 2)}\n`, { mode: 0o600 });
-  await rename(temporary, file);
+type PrimaryInspectorSlot = "rightTop" | "rightBottom" | "lowerLeft";
+
+interface InspectorSplit {
+  paneId: string;
+  direction: "right" | "down";
+  primarySlot?: PrimaryInspectorSlot;
 }
 
 interface InspectorTarget {
   agent: string;
   label: string;
   index?: number;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isUsablePaneId(value: unknown): value is string {
+  return isNonEmptyString(value) && value === value.trim() && !/[\u0000-\u001F\u007F]/u.test(value);
+}
+
+function parseInspectorBinding(value: unknown): InspectorBinding | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const input = value as Record<string, unknown>;
+  if (!isNonEmptyString(input.runId) || !isNonEmptyString(input.asyncDir)) return undefined;
+
+  if (
+    input.schemaVersion === 1
+    && input.kind === "herdr-inspector"
+    && isUsablePaneId(input.paneId)
+    && isNonEmptyString(input.openedAt)
+    && isNonEmptyString(input.command)
+  ) {
+    return {
+      schemaVersion: 1,
+      kind: "herdr-inspector",
+      runId: input.runId,
+      asyncDir: input.asyncDir,
+      panes: [{ paneId: input.paneId, openedAt: input.openedAt, command: input.command }],
+    };
+  }
+
+  if (input.schemaVersion !== 2 || input.kind !== "herdr-subagent-inspectors" || !Array.isArray(input.panes) || input.panes.length === 0) {
+    return undefined;
+  }
+  const paneIds = new Set<string>();
+  const panes: InspectorPane[] = [];
+  for (const value of input.panes) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+    const pane = value as Record<string, unknown>;
+    if (!isUsablePaneId(pane.paneId) || paneIds.has(pane.paneId)) return undefined;
+    paneIds.add(pane.paneId);
+    panes.push({
+      paneId: pane.paneId,
+      ...(isNonEmptyString(pane.agent) ? { agent: pane.agent } : {}),
+      ...(isNonEmptyString(pane.label) ? { label: pane.label } : {}),
+      ...(typeof pane.index === "number" && Number.isInteger(pane.index) ? { index: pane.index } : {}),
+      ...(isNonEmptyString(pane.openedAt) ? { openedAt: pane.openedAt } : {}),
+      ...(isNonEmptyString(pane.command) ? { command: pane.command } : {}),
+    });
+  }
+  return {
+    schemaVersion: 2,
+    kind: "herdr-subagent-inspectors",
+    runId: input.runId,
+    asyncDir: input.asyncDir,
+    panes,
+  };
+}
+
+async function readInspectorBinding(file: string): Promise<{ exists: boolean; binding?: InspectorBinding }> {
+  try {
+    return { exists: true, binding: parseInspectorBinding(JSON.parse(await readFile(file, "utf8"))) };
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+    return { exists: code !== "ENOENT" };
+  }
+}
+
+async function writeBinding(file: string, binding: InspectorBinding): Promise<void> {
+  await mkdir(path.dirname(file), { recursive: true });
+  const temporary = `${file}.${process.pid}.tmp`;
+  await writeFile(temporary, `${JSON.stringify(binding, null, 2)}\n`, { mode: 0o600 });
+  await rename(temporary, file);
 }
 
 function workflowGraphTargets(data: Record<string, unknown>): InspectorTarget[] {
@@ -115,6 +183,14 @@ function paneLabel(target: InspectorTarget): string {
   return (sanitized || target.agent.replace(/^pi-herdr-orchestrator\./u, "") || "subagent").slice(0, 48);
 }
 
+function plannedOverflowSplit(sourcePaneId: string, inspectorPaneIds: readonly string[]): InspectorSplit {
+  const targets = [sourcePaneId, ...inspectorPaneIds];
+  return {
+    paneId: targets[(inspectorPaneIds.length - 3) % targets.length],
+    direction: inspectorPaneIds.length % 2 === 1 ? "right" : "down",
+  };
+}
+
 export interface AutoInspectorOptions {
   role?: string;
   runId?: string;
@@ -137,16 +213,68 @@ export function installAutoInspectors(pi: ExtensionAPI, options: AutoInspectorOp
   const openedRuns = new Set<string>();
   const openedPanes = new Map<string, string[]>();
   const completedRuns = new Set<string>();
-  let openedPaneCount = 0;
+  const primarySlots: Partial<Record<PrimaryInspectorSlot, string>> = {};
+  let initializedPaneIds: string[] = [];
   let queue = Promise.resolve();
 
+  const paneIsLive = async (paneId: string): Promise<boolean> => {
+    try {
+      parseHerdr(await pi.exec(process.env.HERDR_BIN || "herdr", ["pane", "get", paneId], { timeout: 5_000 }), "Herdr inspector pane lookup");
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const normalizePrimarySlots = () => {
+    if (!primarySlots.rightTop && primarySlots.rightBottom) {
+      primarySlots.rightTop = primarySlots.rightBottom;
+      delete primarySlots.rightBottom;
+    }
+  };
+  const forgetInitializedPane = (paneId: string) => {
+    initializedPaneIds = initializedPaneIds.filter((knownPaneId) => knownPaneId !== paneId);
+    if (primarySlots.rightTop === paneId) delete primarySlots.rightTop;
+    if (primarySlots.rightBottom === paneId) delete primarySlots.rightBottom;
+    if (primarySlots.lowerLeft === paneId) delete primarySlots.lowerLeft;
+    normalizePrimarySlots();
+  };
+  const pruneUnavailablePanes = async () => {
+    const unavailablePaneIds: string[] = [];
+    for (const paneId of initializedPaneIds) {
+      if (!await paneIsLive(paneId)) unavailablePaneIds.push(paneId);
+    }
+    for (const paneId of unavailablePaneIds) {
+      forgetInitializedPane(paneId);
+      for (const [runId, paneIds] of openedPanes) {
+        const livePaneIds = paneIds.filter((knownPaneId) => knownPaneId !== paneId);
+        if (livePaneIds.length !== paneIds.length) openedPanes.set(runId, livePaneIds);
+      }
+    }
+  };
+  const nextPrimarySlot = (): PrimaryInspectorSlot | undefined => {
+    if (!primarySlots.rightTop) return "rightTop";
+    if (!primarySlots.rightBottom) return "rightBottom";
+    if (!primarySlots.lowerLeft) return "lowerLeft";
+    return undefined;
+  };
+  const rememberInitializedPane = (paneId: string, primarySlot?: PrimaryInspectorSlot) => {
+    if (!initializedPaneIds.includes(paneId)) initializedPaneIds.push(paneId);
+    if (primarySlot) primarySlots[primarySlot] = paneId;
+  };
+  const nextSplit = (): InspectorSplit => {
+    const rightTop = primarySlots.rightTop;
+    if (!rightTop) return { paneId: sourcePaneId, direction: "right", primarySlot: "rightTop" };
+    if (!primarySlots.rightBottom) return { paneId: rightTop, direction: "down", primarySlot: "rightBottom" };
+    if (!primarySlots.lowerLeft) return { paneId: sourcePaneId, direction: "down", primarySlot: "lowerLeft" };
+    return plannedOverflowSplit(sourcePaneId, initializedPaneIds);
+  };
   const releaseCompletedPanes = async () => {
     for (const runId of completedRuns) {
       const paneIds = openedPanes.get(runId) ?? [];
       for (const paneId of paneIds) {
         await pi.exec(process.env.HERDR_BIN || "herdr", ["pane", "close", paneId], { timeout: 5_000 });
+        forgetInitializedPane(paneId);
       }
-      openedPaneCount = Math.max(0, openedPaneCount - paneIds.length);
       openedPanes.delete(runId);
       openedRuns.delete(runId);
       completedRuns.delete(runId);
@@ -156,29 +284,47 @@ export function installAutoInspectors(pi: ExtensionAPI, options: AutoInspectorOp
   const openInspector = async (payload: unknown) => {
     if (options.isActive?.() === false || !payload || typeof payload !== "object" || maxPanes === 0) return;
     await releaseCompletedPanes();
-    if (openedPaneCount >= maxPanes) return;
+    await pruneUnavailablePanes();
     const data = payload as Record<string, unknown>;
     const runId = typeof data.id === "string" ? data.id : undefined;
     const asyncDir = typeof data.asyncDir === "string" ? path.resolve(data.asyncDir) : undefined;
     if (!runId || !asyncDir || openedRuns.has(runId)) return;
     const bindingFile = path.join(asyncDir, "inspectors", "herdr.json");
-    if (await bindingExists(bindingFile)) {
-      const paneIds = await bindingPaneIds(bindingFile);
-      openedPanes.set(runId, paneIds);
-      openedPaneCount = Math.min(maxPanes, openedPaneCount + paneIds.length);
+    const existing = await readInspectorBinding(bindingFile);
+    if (existing.exists) {
       openedRuns.add(runId);
+      const binding = existing.binding;
+      if (binding && binding.runId === runId && path.resolve(binding.asyncDir) === asyncDir) {
+        const recoveredPaneIds: string[] = [];
+        for (const pane of binding.panes) {
+          if (
+            pane.paneId !== sourcePaneId
+            && !initializedPaneIds.includes(pane.paneId)
+            && await paneIsLive(pane.paneId)
+          ) {
+            recoveredPaneIds.push(pane.paneId);
+            rememberInitializedPane(pane.paneId, nextPrimarySlot());
+          }
+        }
+        openedPanes.set(runId, recoveredPaneIds);
+      }
       return;
     }
+    if (initializedPaneIds.length >= maxPanes) return;
+
     const cwd = typeof data.cwd === "string" ? data.cwd : options.roleRoot || process.env.PI_HERDR_ORCHESTRATOR_ROLE_ROOT || process.cwd();
-    const targets = inspectorTargets(data, maxPanes - openedPaneCount);
-    const panes: Array<Record<string, unknown>> = [];
+    const targets = inspectorTargets(data, maxPanes - initializedPaneIds.length);
+    if (targets.length === 0) return;
+    const panes: InspectorPane[] = [];
     openedRuns.add(runId);
     for (const target of targets) {
+      if (initializedPaneIds.length >= maxPanes) break;
+      const plannedSplit = nextSplit();
       const split = parseHerdr(await pi.exec(process.env.HERDR_BIN || "herdr", [
-        "pane", "split", "--pane", sourcePaneId, "--direction", "right", "--cwd", cwd, "--no-focus",
+        "pane", "split", "--pane", plannedSplit.paneId, "--direction", plannedSplit.direction, "--ratio", "0.5", "--cwd", cwd, "--no-focus",
       ], { timeout: 15_000 }), "Herdr inspector pane split");
       const paneId = split?.result?.pane?.pane_id;
-      if (typeof paneId !== "string") throw new Error("Herdr inspector pane split returned no pane id.");
+      if (!isUsablePaneId(paneId) || paneId === sourcePaneId) throw new Error("Herdr inspector pane split returned no usable pane id.");
       const command = inspectorCommand(asyncDir, runId, target.index);
       const displayLabel = paneLabel(target);
       try {
@@ -196,8 +342,6 @@ export function installAutoInspectors(pi: ExtensionAPI, options: AutoInspectorOp
           openedAt: new Date().toISOString(),
           command,
         });
-        openedPaneCount += 1;
-        openedPanes.set(runId, panes.map((pane) => pane.paneId as string));
         await writeBinding(bindingFile, {
           schemaVersion: 2,
           kind: "herdr-subagent-inspectors",
@@ -205,6 +349,8 @@ export function installAutoInspectors(pi: ExtensionAPI, options: AutoInspectorOp
           asyncDir,
           panes,
         });
+        openedPanes.set(runId, panes.map((pane) => pane.paneId));
+        rememberInitializedPane(paneId, plannedSplit.primarySlot);
       } catch (error) {
         await pi.exec(process.env.HERDR_BIN || "herdr", ["pane", "close", paneId], { timeout: 5_000 });
         throw error;

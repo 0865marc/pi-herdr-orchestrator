@@ -34,6 +34,14 @@ primary role gets a visible Herdr workspace and an isolated Git checkout.
     └── subagent inspector panes
 ```
 
+Each role may launch one of three bundled read-only Pi subagents. A session capability
+ceiling enforces their agent names, read/search-only tools, extension denial, and zero
+nesting depth. Role delegation is asynchronous and each run automatically opens a
+Herdr inspector pane inside its parent's workspace. The first three use an equal 2x2
+grid with the source pane at top-left. Builder remains the only writer for the task worktree.
+
+Each main role also renders a persistent, theme-colored label immediately above its input editor.
+
 ## Requirements
 
 - Node.js 22 or newer

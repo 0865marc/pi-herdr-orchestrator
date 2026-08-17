@@ -5,6 +5,7 @@
 - `pi-herdr-orchestrator` is the discoverable entry point.
 - `pi_herdr_orchestrator` is the deterministic Pi tool for primary workspace lifecycle.
 - `role-guard` applies role-aware path and tool policy inside workflow sessions.
+- `role-appearance` renders a persistent, theme-colored main-role marker above the input editor.
 - `auto-inspectors` turns every flattened async child into a task-labelled Herdr pane.
 - `builder-writers` is a Builder-only control tool for bounded Writer waves.
 - `writer-guard` confines a no-shell Writer's file tools to its controller-owned
